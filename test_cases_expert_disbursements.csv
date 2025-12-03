@@ -1,0 +1,101 @@
+ID,Title,State,Area,Created Date
+176648,Disbursements can be searched using the default search criterion,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Disbursement Grid,2017-09-01T03:08:03.873Z
+176825,Disbursements can searched using the additionally available search criterion,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Disbursement Grid,2017-09-05T03:40:56.467Z
+177629,Expert Disb: Ctrl+S Saves disbursements correctly,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-18T04:22:48.647Z
+177657,Expert Disb: Delete key deletes from Grids,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-18T20:51:44.697Z
+177784,Expert Disb: Ctrl+O opens from the grid,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-19T23:56:05.347Z
+177808,Expert Disb: Ctrl+N will create new items,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-20T02:02:19.89Z
+177818,Expert Disb: F11 will minimize and maximize the application,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-20T03:22:59.397Z
+177820,Expert Disb: F5 will cause a search to be performed,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-20T03:32:44.27Z
+177825,Expert Disb: Escape key will close a disbursement card.,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-20T04:17:21.087Z
+177831,Expert Disb: Ctrl+Shift+S will save and add.,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-20T04:36:44.063Z
+177872,Release Unrelease Disb - Classic Disb,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Release Unrelease Disb,2017-09-20T22:58:43.3Z
+177879,Release Unrelease Session - Disb with Alert and Rule Violations,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Release Unrelease Disb,2017-09-20T23:05:05.16Z
+177902,Release Unrelease Session - Validation,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Sessions,2017-09-21T01:48:57.75Z
+177906,Edit List - Session - Report requirement,Closed,ExpertSuite\Financials\Expert Disbursements\Reports\Edit List Report,2017-09-21T02:00:23.813Z
+177913,Expert Disb: Security - CreateDisbursement,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\New Disb,2017-09-21T02:12:50.863Z
+177965,Release Unrelease Disb - Disb with Alert and Rule Violations,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Release Unrelease Disb,2017-09-21T21:29:49.35Z
+177970,Release Unrelease Disb - General,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Release Unrelease Disb,2017-09-21T21:42:10.627Z
+177972,Edit List - Disb - Report requirement,Closed,ExpertSuite\Financials\Expert Disbursements\Reports\Edit List Report,2017-09-21T21:45:15.55Z
+177973,Unposted Disb Edit - Open Existing Disb,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\New Disb,2017-09-21T21:50:00.17Z
+178058,Disbursement created in Classic,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\New Disb,2017-09-24T20:05:06Z
+178080,Expert Disb: Create New Session Screen,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Sessions,2017-09-25T00:17:20.353Z
+178260,Expert Disb: Deleting Pre-Posted Sessions,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Sessions,2017-09-27T02:12:55.637Z
+178377,Admin - Grid Options,Closed,ExpertSuite\Financials\Expert Disbursements\Administration\Grid Options,2017-09-28T19:35:44.01Z
+178380,Disbursements - Launch Application from Expert Assistant,Ready,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-28T20:03:11.943Z
+178383,Expert Disb: New field for Statuses,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-28T20:57:18.123Z
+178409,Expert Disb: New DB fields for Accounts Payable,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-29T00:19:07.337Z
+178410,Expert Disb: New DB Fields Billing,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-29T00:19:46.62Z
+178411,Expert Disb: New DB Fields Expert Disb,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-29T00:20:05.293Z
+178412,Expert Disb: New DB Fields Expenses,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-29T00:20:22.95Z
+178597,Expert Disb: Session List cannot edit Sessions created in Classic,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Sessions,2017-10-03T03:05:07.73Z
+178634,Jobs - Recent Activity ,Ready,ExpertSuite\Financials\Expert Disbursements\Jobs and Recent Activities,2017-10-03T20:46:48.307Z
+178925,Admin - Disb Options - Adjustment Reason Code,Ready,ExpertSuite\Financials\Expert Disbursements\Administration\Disbursement Options,2017-10-06T02:48:58.773Z
+179057,Expert Disb: Edited fields in a disbursement will save prior to posting.,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Edit Unposted Disb,2017-10-09T02:09:32.67Z
+179132,Post Disb - Basic Post - Multicurrency,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Posting Disb,2017-10-10T00:37:24.48Z
+179141,Post Disb - Post with Auto and Delayed Split,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Posting Disb,2017-10-10T01:25:26.077Z
+179146,Expert Disb: Sessions: Post One Disb without Auto Split,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Sessions,2017-10-10T01:44:24.127Z
+179148,Expert Disb: Sessions: Post Multiple Disbs without Auto Split,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Sessions,2017-10-10T01:49:56.603Z
+179152,Expert Disb: Sessions: Post One Disb with Auto Split,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Sessions,2017-10-10T02:09:13.05Z
+179156,Expert Disb: Sessions: Post Multiple Disbs with Auto Split,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Sessions,2017-10-10T02:16:24.39Z
+179169,Admin - Disb Options - Firm Options,Ready,ExpertSuite\Financials\Expert Disbursements\Administration\Disbursement Options,2017-10-10T03:20:50.78Z
+179276,Disbursements - Backstage Help links,Ready,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-10-11T02:41:57.557Z
+179473,Disb Card - Data Providers validation,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\New Disb,2017-10-15T21:30:33.36Z
+179604,Session can be search with default and additional search criterion,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Sessions,2017-10-17T02:59:43.48Z
+179790,Disb Session - Inline Edit,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Sessions,2017-10-19T03:11:08.973Z
+179871,Delete disb - with CreateDisbursement security,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Delete Disb,2017-10-20T00:28:15.73Z
+180296,Disb Card -  Edit validation,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Edit Unposted Disb,2017-10-26T01:10:10.183Z
+180299,Expert Disb: Security: Disbursements - Without PostDisbursements user rights,Closed,ExpertSuite\Financials\Expert Disbursements\Security,2017-10-26T01:28:38.947Z
+180459,Expert Disb: Security: No access to Sessions Tab,Ready,ExpertSuite\Financials\Expert Disbursements\Security,2017-10-27T03:08:29.187Z
+180461,Expert Disb: Security: No access to Disbursement Tab,Ready,ExpertSuite\Financials\Expert Disbursements\Security,2017-10-27T03:12:38.867Z
+180523,Edit a Posted disbursements MOVES RESULT FROM ATTACHMENT TO TEST STEPS (MIGHT INCLUDE UI TC),Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Posting Disb,2017-10-29T22:07:05.377Z
+180607,Expert Disb: Security: Sessions - CreateSession user rights,Ready,ExpertSuite\Financials\Expert Disbursements\Security,2017-10-30T01:17:40.403Z
+180608,Expert Disb: Security: Sessions - ReleaseSession user rights,Ready,ExpertSuite\Financials\Expert Disbursements\Security,2017-10-30T01:18:20.777Z
+180618,Expert Disb: Security: Sessions - PostSession user rights,Ready,ExpertSuite\Financials\Expert Disbursements\Security,2017-10-30T01:48:29.52Z
+180631,Expert Disb: Security: Disbursements - CreateDisbursements user rights,Ready,ExpertSuite\Financials\Expert Disbursements\Security,2017-10-30T03:03:31.85Z
+180670,Expert Disb: Security: Disbursements - EditDisbursements user rights,Ready,ExpertSuite\Financials\Expert Disbursements\Security,2017-10-30T19:36:31.123Z
+180676,Expert Disb: Security: Disbursements - ReleaseDisbursements user rights,Ready,ExpertSuite\Financials\Expert Disbursements\Security,2017-10-30T19:45:47.987Z
+180679,Expert Disb: Security: Disbursements - PostDisbursements user rights,Ready,ExpertSuite\Financials\Expert Disbursements\Security,2017-10-30T19:49:47.713Z
+180702,Expert Disb: Security: Disbursements - CancelDisbursements user rights,Ready,ExpertSuite\Financials\Expert Disbursements\Security,2017-10-30T21:11:44.333Z
+180739,Expert Disb: Security: Disbursements - SplitDisbursements user rights,Ready,ExpertSuite\Financials\Expert Disbursements\Security,2017-10-31T01:03:03.24Z
+181159,Disb Import - Minimum required fields and Import Wizard,Ready,ExpertSuite\Financials\Expert Disbursements\Utilities\Import,2017-11-02T03:22:48.023Z
+181329,Disb Import - Invalid file,Ready,ExpertSuite\Financials\Expert Disbursements\Utilities\Import,2017-11-05T22:07:47.86Z
+181336,Disb Import - Map fields in the Import Wizard,Review,ExpertSuite\Financials\Expert Disbursements\Utilities\Import,2017-11-05T22:36:23.74Z
+181505,Expert Disb: Security: Disbursements - MassEditDisbursments user rights,Closed,ExpertSuite\Financials\Expert Disbursements\Security,2017-11-07T03:22:47.397Z
+181506,User is able to Mass Edit multiple disbursements,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Edit Disb - Mass,2017-11-07T03:23:45.623Z
+181508,Mass Edit - Fields validation,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Edit Disb - Mass,2017-11-07T03:24:54.36Z
+182024,Session entry form - Form behaviour,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Sessions,2017-11-13T02:44:35.13Z
+182462,Smoke Test Disb: Merge - Basic Merge,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Merge Disb,2017-11-16T20:20:54.11Z
+182467,Merge - Merge with Multiple Disb Types,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Merge Disb,2017-11-16T20:38:24.77Z
+182468,Merge - Merge and Group by Disbursement Person,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Merge Disb,2017-11-16T20:40:54.61Z
+182469,Merge - Merge and Group by Location,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Merge Disb,2017-11-16T20:41:35.973Z
+182470,Merge - Merge and Group by Phase Task,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Merge Disb,2017-11-16T20:45:11.693Z
+182473,Merge - Merge and Group by Project,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Merge Disb,2017-11-16T21:07:58.96Z
+182863,Cancel Disb - Validation,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Cancel Disb,2017-11-21T19:39:46.84Z
+182864,Cancel Disb - Cancel multiple Disbursements,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Cancel Disb,2017-11-21T19:40:03.17Z
+182865,Cancel Disb - Ribbon button availability,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Cancel Disb,2017-11-21T19:43:19.433Z
+182867,Expert Disb: Split Once: Disbursement: Percentage: System Currency NEED BETTER VERIFICATION,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:04:37.503Z
+182868,Expert Disb: Split Once: Disbursement: Percentage: Non-System Currency (Multi-currency),Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:05:02.96Z
+182870,Expert Disb: Split Multiple: Disbursement: Percentage: System Currency,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:05:47.823Z
+182871,Expert Disb: Split Multiple: Disbursement: Percentage: Non-System Currency (Multi-currency),Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:07:03.017Z
+182872,Expert Disb: Split Once: Disbursement: Amount: System Currency,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:07:49.24Z
+182873,Expert Disb: Split Once: Disbursement: Amount: Non-System Currency (Multi-currency),Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:08:02.27Z
+182874,Expert Disb: Split Multiple: Disbursement: Amount: System Currency,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:08:40.307Z
+182875,Expert Disb: Split Multiple: Disbursement: Amount: Non-System Currency (Multi-currency),Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:08:49.917Z
+182879,Expert Disb: Split Once: Disbursement: Quantity: System Currency,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:12:33.543Z
+182880,Expert Disb: Split Once: Disbursement: Quantity: Non-System Currency (Multi-currency),Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:12:43.98Z
+182881,Expert Disb: Split Multiple: Disbursement: Quantity: System Currency,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:12:57.293Z
+182882,Expert Disb: Split Multiple: Disbursement: Quantity: Non-System Currency (Multi-currency),Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:13:07.403Z
+182883,Expert Disb: Split Once: Session: Percentage: System Currency,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:13:28.063Z
+182884,Expert Disb: Split Multiple: Session: Percentage: Non-System Currency (Multi-currency) INCLUDE UNSPLIT SCENARIO  184150?,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:13:39.593Z
+182885,Expert Disb: Split Once: Session: Amount: Non-System Currency (Multi-currency),Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:14:29.41Z
+182886,Expert Disb: Split Multiple: Session: Amount: System Currency,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:14:38.553Z
+182887,Expert Disb: Split Once: Session: Quantity: System Currency,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:14:47.13Z
+182888,Expert Disb: Split Multiple: Session: Quantity: Non-System Currency (Multi-currency),Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:14:57.413Z
+183022,Disbursements Status,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements,2017-11-22T03:34:18.003Z
+184126,Post Disb - Anticipated Disb,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Posting Disb,2017-12-06T00:19:37.793Z
+184127,Post Disb - Anticipated Disb - Hard/Soft,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Posting Disb,2017-12-06T00:20:19.897Z
+184128,Post Disb - Anticipated Disb - with Threshold,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Posting Disb,2017-12-06T00:20:47.943Z
+184129,Expert Disb: Anticipated Disb: Automatch in Session,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Posting Disb,2017-12-06T00:21:20.177Z
+184130,Expert Disb: Anticipated Disb: Automatch Threshold,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Posting Disb,2017-12-06T00:21:37.95Z
+184148,Undo Split - Multicurrency Disbursement,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-12-06T01:42:33.747Z
