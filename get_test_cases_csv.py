@@ -1,9 +1,14 @@
+import os
 import requests
 import base64
 import csv
 import html
 from html.parser import HTMLParser
 import xml.etree.ElementTree as ET
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 class HTMLStripper(HTMLParser):
     """Helper class to strip HTML tags from text"""
@@ -71,11 +76,22 @@ def parse_test_steps(steps_xml):
     except Exception as e:
         return f"[Error parsing steps: {str(e)}]"
 
-# Configuration
-TFS_URL = "https://tfs.aderant.com/tfs"
-COLLECTION = "ADERANT"
-PROJECT = "ExpertSuite"
-PAT = "szafzrwqrh7bqeqfmlf2vrkirvq3cv7xhvocrxf2chh7laxnqm4q"
+# Configuration - loaded from .env file
+TFS_BASE_URL = os.getenv("TFS_BASE_URL", "")
+COLLECTION = os.getenv("TFS_COLLECTION", "")
+PROJECT = os.getenv("TFS_PROJECT", "")
+PAT = os.getenv("TFS_PAT", "")
+
+# Validate required environment variables
+if not all([TFS_BASE_URL, COLLECTION, PROJECT, PAT]):
+    missing = []
+    if not TFS_BASE_URL: missing.append("TFS_BASE_URL")
+    if not COLLECTION: missing.append("TFS_COLLECTION")
+    if not PROJECT: missing.append("TFS_PROJECT")
+    if not PAT: missing.append("TFS_PAT")
+    print(f"Error: Missing required environment variables: {', '.join(missing)}")
+    print("Please add them to your .env file")
+    exit(1)
 
 # Auth header
 auth_header = base64.b64encode(f":{PAT}".encode()).decode()
@@ -97,7 +113,7 @@ wiql_query = {
 }
 
 # Make the WIQL query
-api_url = f"{TFS_URL}/{COLLECTION}/{PROJECT}/_apis/wit/wiql?api-version=4.1"
+api_url = f"{TFS_BASE_URL}/{COLLECTION}/{PROJECT}/_apis/wit/wiql?api-version=4.1"
 response = requests.post(api_url, headers=headers, json=wiql_query)
 
 if response.status_code == 200:
@@ -110,7 +126,7 @@ if response.status_code == 200:
         ids = [str(wi["id"]) for wi in work_items]
         ids_param = ",".join(ids)
         
-        details_url = f"{TFS_URL}/{COLLECTION}/{PROJECT}/_apis/wit/workitems?ids={ids_param}&fields=System.Id,System.Title,System.State,System.AreaPath,System.CreatedDate,System.Description,Microsoft.VSTS.TCM.Steps&api-version=4.1"
+        details_url = f"{TFS_BASE_URL}/{COLLECTION}/{PROJECT}/_apis/wit/workitems?ids={ids_param}&fields=System.Id,System.Title,System.State,System.AreaPath,System.CreatedDate,System.Description,Microsoft.VSTS.TCM.Steps&api-version=4.1"
         details_response = requests.get(details_url, headers=headers)
         
         if details_response.status_code == 200:

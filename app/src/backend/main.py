@@ -7,6 +7,8 @@ identifying related tests, suggesting updates, and detecting duplicates.
 
 import os
 import tempfile
+import requests
+import base64
 from pathlib import Path
 from typing import Optional
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
@@ -19,6 +21,17 @@ from agent.agent import TestCaseAgent
 
 # Load environment variables
 load_dotenv()
+
+# TFS Configuration (loaded from .env file)
+TFS_BASE_URL = os.getenv("TFS_BASE_URL", "")  # e.g., https://tfs.aderant.com/tfs
+TFS_COLLECTION = os.getenv("TFS_COLLECTION", "")  # e.g., ADERANT
+TFS_PROJECT = os.getenv("TFS_PROJECT", "")  # e.g., ExpertSuite
+TFS_PAT = os.getenv("TFS_PAT", "")  # Personal Access Token
+
+# GitHub Configuration (loaded from .env file)
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")  # Personal Access Token
+GITHUB_OWNER = os.getenv("GITHUB_OWNER", "")  # Organization or username
+GITHUB_REPO = os.getenv("GITHUB_REPO", "")  # Repository name
 
 app = FastAPI(
     title="Test Case Analysis API",
@@ -68,6 +81,33 @@ class HealthResponse(BaseModel):
     agent_loaded: bool
 
 
+class BugInfoResponse(BaseModel):
+    """Response model for bug info fetch."""
+    bug_id: str = Field(description="The bug ID")
+    title: str = Field(description="Bug title")
+    description: str = Field(description="Bug description")
+    repro_steps: str = Field(description="Reproduction steps")
+
+
+class FileChange(BaseModel):
+    """Model for a single file change in a PR."""
+    filename: str = Field(description="Name/path of the changed file")
+    status: str = Field(description="Status: added, modified, removed, renamed")
+    additions: int = Field(description="Number of lines added")
+    deletions: int = Field(description="Number of lines deleted")
+    changes: int = Field(description="Total number of changes")
+
+
+class PRInfoResponse(BaseModel):
+    """Response model for PR info fetch."""
+    pr_number: int = Field(description="The PR number")
+    title: str = Field(description="PR title")
+    files_changed: list[FileChange] = Field(description="List of changed files")
+    total_files: int = Field(description="Total number of files changed")
+    total_additions: int = Field(description="Total lines added")
+    total_deletions: int = Field(description="Total lines deleted")
+
+
 @app.get("/", response_model=HealthResponse)
 async def root():
     """Root endpoint - API information."""
@@ -94,6 +134,209 @@ async def health_check():
             "message": f"Error: {str(e)}",
             "agent_loaded": False
         }
+
+
+def get_tfs_headers():
+    """Get authorization headers for TFS API calls."""
+    if not TFS_PAT:
+        return {}
+    # Azure DevOps uses Basic auth with PAT
+    auth_string = base64.b64encode(f":{TFS_PAT}".encode()).decode()
+    return {
+        "Authorization": f"Basic {auth_string}",
+        "Content-Type": "application/json"
+    }
+
+
+def get_github_headers():
+    """Get authorization headers for GitHub API calls."""
+    headers = {
+        "Accept": "application/vnd.github.v3+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+    }
+    if GITHUB_TOKEN:
+        headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
+    return headers
+
+
+def extract_html_text(html_content: str) -> str:
+    """Extract plain text from HTML content."""
+    if not html_content:
+        return ""
+    import re
+    # Remove HTML tags
+    text = re.sub(r'<[^>]+>', '\n', html_content)
+    # Decode HTML entities
+    text = text.replace('&nbsp;', ' ').replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
+    # Clean up whitespace
+    text = re.sub(r'\n\s*\n', '\n\n', text)
+    return text.strip()
+
+
+@app.get("/fetch-bug-info/{bug_id}", response_model=BugInfoResponse)
+async def fetch_bug_info(bug_id: str):
+    """
+    Fetch bug information from TFS/Azure DevOps.
+    
+    Args:
+        bug_id: The work item ID of the bug
+        
+    Returns:
+        Bug information including title, description, repro steps, and metadata
+    """
+    if not TFS_BASE_URL or not TFS_COLLECTION or not TFS_PROJECT:
+        raise HTTPException(
+            status_code=500, 
+            detail="TFS configuration missing. Please set TFS_BASE_URL, TFS_COLLECTION, TFS_PROJECT, and TFS_PAT in .env file"
+        )
+    
+    try:
+        # TFS REST API endpoint for work items
+        # Format: {TFS_URL}/{COLLECTION}/{PROJECT}/_apis/wit/workitems/{id}
+        url = f"{TFS_BASE_URL}/{TFS_COLLECTION}/{TFS_PROJECT}/_apis/wit/workitems/{bug_id}?api-version=4.1&$expand=all"
+        
+        print(f"Fetching bug info from: {url}")
+        
+        headers = get_tfs_headers()
+        response = requests.get(url, headers=headers, timeout=30)
+        
+        if response.status_code == 404:
+            raise HTTPException(status_code=404, detail=f"Bug {bug_id} not found")
+        
+        if response.status_code == 401:
+            raise HTTPException(status_code=401, detail="TFS authentication failed. Check your PAT token.")
+        
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=response.status_code, 
+                detail=f"TFS API error: {response.text}"
+            )
+        
+        work_item = response.json()
+        fields = work_item.get("fields", {})
+        
+        # Extract only title, description, and repro steps
+        title = fields.get("System.Title", "")
+        description = extract_html_text(fields.get("System.Description", ""))
+        repro_steps = extract_html_text(fields.get("Microsoft.VSTS.TCM.ReproSteps", ""))
+        
+        return {
+            "bug_id": bug_id,
+            "title": title,
+            "description": description,
+            "repro_steps": repro_steps
+        }
+        
+    except requests.exceptions.Timeout:
+        raise HTTPException(status_code=504, detail="TFS request timed out")
+    except requests.exceptions.ConnectionError:
+        raise HTTPException(status_code=503, detail="Could not connect to TFS server")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching bug info: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch bug info: {str(e)}")
+
+
+@app.get("/fetch-pr-info/{pr_number}", response_model=PRInfoResponse)
+async def fetch_pr_info(pr_number: int):
+    """
+    Fetch Pull Request information from GitHub including changed files.
+    
+    Args:
+        pr_number: The PR number to fetch
+        
+    Returns:
+        PR information including title, state, author, and list of changed files
+    """
+    if not GITHUB_OWNER or not GITHUB_REPO:
+        raise HTTPException(
+            status_code=500,
+            detail="GitHub configuration missing. Please set GITHUB_TOKEN, GITHUB_OWNER, and GITHUB_REPO in .env file"
+        )
+    
+    try:
+        # GitHub REST API endpoint for PR details
+        pr_url = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/pulls/{pr_number}"
+        files_url = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/pulls/{pr_number}/files"
+        
+        print(f"GitHub Config - Owner: {GITHUB_OWNER}, Repo: {GITHUB_REPO}")
+        print(f"Fetching PR info from: {pr_url}")
+        print(f"Token present: {bool(GITHUB_TOKEN)}")
+        
+        headers = get_github_headers()
+        
+        # Fetch PR details
+        pr_response = requests.get(pr_url, headers=headers, timeout=30)
+        
+        print(f"GitHub API response status: {pr_response.status_code}")
+        
+        if pr_response.status_code == 404:
+            # Get more details about why it's 404
+            error_detail = f"PR #{pr_number} not found in {GITHUB_OWNER}/{GITHUB_REPO}. "
+            error_detail += "Check: 1) PR number exists, 2) Repo name is correct, 3) Token has access to private repos"
+            raise HTTPException(status_code=404, detail=error_detail)
+        
+        if pr_response.status_code == 401:
+            raise HTTPException(status_code=401, detail="GitHub authentication failed. Check your token.")
+        
+        if pr_response.status_code == 403:
+            raise HTTPException(status_code=403, detail="GitHub API rate limit exceeded or access denied.")
+        
+        if pr_response.status_code != 200:
+            raise HTTPException(
+                status_code=pr_response.status_code,
+                detail=f"GitHub API error: {pr_response.text}"
+            )
+        
+        pr_data = pr_response.json()
+        
+        # Fetch changed files
+        print(f"Fetching changed files from: {files_url}")
+        files_response = requests.get(files_url, headers=headers, timeout=30)
+        
+        if files_response.status_code != 200:
+            raise HTTPException(
+                status_code=files_response.status_code,
+                detail=f"Failed to fetch PR files: {files_response.text}"
+            )
+        
+        files_data = files_response.json()
+        
+        # Build file changes list
+        file_changes = []
+        total_additions = 0
+        total_deletions = 0
+        
+        for file in files_data:
+            file_changes.append(FileChange(
+                filename=file.get("filename", ""),
+                status=file.get("status", ""),
+                additions=file.get("additions", 0),
+                deletions=file.get("deletions", 0),
+                changes=file.get("changes", 0)
+            ))
+            total_additions += file.get("additions", 0)
+            total_deletions += file.get("deletions", 0)
+        
+        return PRInfoResponse(
+            pr_number=pr_number,
+            title=pr_data.get("title", ""),
+            files_changed=file_changes,
+            total_files=len(file_changes),
+            total_additions=total_additions,
+            total_deletions=total_deletions
+        )
+        
+    except requests.exceptions.Timeout:
+        raise HTTPException(status_code=504, detail="GitHub request timed out")
+    except requests.exceptions.ConnectionError:
+        raise HTTPException(status_code=503, detail="Could not connect to GitHub")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching PR info: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch PR info: {str(e)}")
 
 
 @app.post("/analyze-bug", response_model=AnalysisResponse)
