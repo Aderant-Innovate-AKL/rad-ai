@@ -1,5 +1,7 @@
 # Python
 __pycache__/
+app/src/backend/__pycache__/
+app/src/backend/agent/__pycache__/
 *.py[cod]
 *$py.class
 *.so
