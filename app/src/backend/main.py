@@ -1,8 +1,27 @@
 """
 FastAPI application for Test Case Analysis API.
 
-Provides endpoints for analyzing bug reports against test cases,
-identifying related tests, suggesting updates, and detecting duplicates.
+⚠️ DEPRECATED: This file has been merged into api.py
+Please use api.py instead, which now contains all endpoints from both api.py and main.py.
+
+This file is kept for reference only.
+"""
+
+# All functionality has been moved to api.py
+# To run the unified API server, use:
+# python api.py
+# or
+# uvicorn api:app --reload
+
+print("="*80)
+print("⚠️  WARNING: main.py is deprecated!")
+print("="*80)
+print("\nThis file has been merged into api.py")
+print("Please run: python api.py")
+print("\nOr use: uvicorn api:app --reload --host 0.0.0.0 --port 8000")
+print("="*80)
+
+# Original code below for reference only
 """
 
 import os
