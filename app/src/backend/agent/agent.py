@@ -439,7 +439,27 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
                 if start_idx != -1 and end_idx > start_idx:
                     json_str = response_text[start_idx:end_idx]
                     claude_analysis = json.loads(json_str)
-                    return claude_analysis.get('duplicate_groups', [])
+                    duplicate_groups = claude_analysis.get('duplicate_groups', [])
+                    
+                    # Enrich the duplicate groups with actual test case IDs
+                    enriched_groups = []
+                    for group in duplicate_groups:
+                        pair_id = group.get('pair_id')
+                        if pair_id and pair_id <= len(potential_duplicates):
+                            # Get the actual pair data
+                            pair = potential_duplicates[pair_id - 1]  # pair_id is 1-indexed
+                            enriched_group = {
+                                'pair_id': pair_id,
+                                'classification': group.get('classification', 'UNKNOWN'),
+                                'reasoning': group.get('reasoning', ''),
+                                'recommendation': group.get('recommendation', ''),
+                                'test_case_1_id': pair['test_case_1']['id'],
+                                'test_case_2_id': pair['test_case_2']['id'],
+                                'similarity_score': pair['similarity_score']
+                            }
+                            enriched_groups.append(enriched_group)
+                    
+                    return enriched_groups if enriched_groups else duplicate_groups
             except json.JSONDecodeError:
                 pass
             
@@ -468,28 +488,48 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
         csv_rows = []
         
         # Build a lookup for duplicate relationships
-        duplicate_map = {}  # test_case_id -> list of related test case IDs
-        for dup in results.get('duplicate_analysis', []):
+        duplicate_map = {}  # test_case_id -> {'related': list, 'classifications': list}
+        duplicate_analysis = results.get('duplicate_analysis', [])
+        
+        for dup in duplicate_analysis:
             if isinstance(dup, dict):
-                pair_id = dup.get('pair_id')
-                classification = dup.get('classification', 'UNKNOWN')
-                
-                # Find the corresponding pair in similar_tests
-                similar_tests = results.get('similar_tests', [])
-                if pair_id and pair_id <= len(similar_tests):
-                    # Map pair_id to actual test cases (pair_id is 1-indexed)
-                    if len(similar_tests) >= 2:
-                        # Store classification and relationship
-                        tc1_id = similar_tests[min(pair_id-1, len(similar_tests)-1)]['test_case']['id']
-                        tc2_id = similar_tests[min(pair_id, len(similar_tests)-1)]['test_case']['id']
-                        
-                        if tc1_id not in duplicate_map:
-                            duplicate_map[tc1_id] = {'related': [], 'classification': classification}
-                        if tc2_id not in duplicate_map:
-                            duplicate_map[tc2_id] = {'related': [], 'classification': classification}
-                        
+                # Check if this has enriched data with test case IDs
+                if 'test_case_1_id' in dup and 'test_case_2_id' in dup:
+                    tc1_id = str(dup['test_case_1_id'])
+                    tc2_id = str(dup['test_case_2_id'])
+                    classification = dup.get('classification', 'UNKNOWN')
+                    
+                    # Initialize entries if they don't exist
+                    if tc1_id not in duplicate_map:
+                        duplicate_map[tc1_id] = {'related': [], 'classifications': []}
+                    if tc2_id not in duplicate_map:
+                        duplicate_map[tc2_id] = {'related': [], 'classifications': []}
+                    
+                    # Add relationship if not already present
+                    if tc2_id not in duplicate_map[tc1_id]['related']:
                         duplicate_map[tc1_id]['related'].append(tc2_id)
+                        duplicate_map[tc1_id]['classifications'].append(classification)
+                    if tc1_id not in duplicate_map[tc2_id]['related']:
                         duplicate_map[tc2_id]['related'].append(tc1_id)
+                        duplicate_map[tc2_id]['classifications'].append(classification)
+                        
+                elif 'test_case_1' in dup and 'test_case_2' in dup:
+                    # This is raw similarity data (fallback response from detect_duplicates)
+                    tc1_id = str(dup['test_case_1']['id'])
+                    tc2_id = str(dup['test_case_2']['id'])
+                    classification = 'HIGH SIMILARITY'
+                    
+                    if tc1_id not in duplicate_map:
+                        duplicate_map[tc1_id] = {'related': [], 'classifications': []}
+                    if tc2_id not in duplicate_map:
+                        duplicate_map[tc2_id] = {'related': [], 'classifications': []}
+                    
+                    if tc2_id not in duplicate_map[tc1_id]['related']:
+                        duplicate_map[tc1_id]['related'].append(tc2_id)
+                        duplicate_map[tc1_id]['classifications'].append(classification)
+                    if tc1_id not in duplicate_map[tc2_id]['related']:
+                        duplicate_map[tc2_id]['related'].append(tc1_id)
+                        duplicate_map[tc2_id]['classifications'].append(classification)
         
         # Build lookup for Claude's analysis
         claude_analysis = results.get('claude_analysis', {})
@@ -525,12 +565,17 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
             
             # Get duplicate information - show related IDs for TRUE DUPLICATES and OVERLAPPING
             related_ids = ''
-            duplicate_classification = ''
+            duplicate_classification = 'DISTINCT'  # Default to DISTINCT if not analyzed
             if tc_id in duplicate_map:
-                classification = duplicate_map[tc_id]['classification']
-                duplicate_classification = classification
-                # Include related IDs if classified as OVERLAPPING or TRUE DUPLICATES
-                if 'OVERLAPPING' in classification.upper() or 'TRUE DUPLICATE' in classification.upper():
+                classifications = duplicate_map[tc_id]['classifications']
+                # Combine unique classifications
+                unique_classifications = list(set(classifications))
+                duplicate_classification = ', '.join(unique_classifications) if unique_classifications else 'DISTINCT'
+                
+                # Include related IDs if any classification is OVERLAPPING or TRUE DUPLICATES
+                show_related = any('OVERLAPPING' in c.upper() or 'TRUE DUPLICATE' in c.upper() 
+                                  for c in classifications)
+                if show_related:
                     related_ids = ', '.join(duplicate_map[tc_id]['related'])
             
             # Get Claude analysis
