@@ -19,3 +19,6 @@ pydantic-settings==2.6.1
 
 # HTTP and CORS
 python-jose[cryptography]==3.3.0
+
+# MCP (Model Context Protocol) - optional, only needed if using external MCP client
+# mcp==0.9.0

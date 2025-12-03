@@ -1,0 +1,933 @@
+ID,Title,State,Area,Created Date,Description,Steps
+71973,(Smoke Test) Open WIP Review Application (existing Pre 8.1 desktop version),Ready,ExpertSuite\Billing\Wip Review,2012-04-24T03:29:15.59Z,,"Step 1: Setting pre reqsExpert WIP Review | Ribbon Bar | Advanced Search'Matter has outstanding WIP' turned off || Step 2: Data re reqsClient 1 (e.g.30003)- Matter- Has no WIPClient 2 (e.g. 10901)- Multiple Matters- Has Fee WIP- Has Disb WIP || Step 3: Open WIP Review Application from Expert Share | Expected: App Should Open || Step 4: Open WIP Review App from Action Menu in EA | Expected: App Should Open || Step 5: Go to Security Manager, and search for WIP Review App Module Policy, and Remove yourself from the security | Expected: When trying to open the app, get a message stating you do not have permission || Step 6: Make sure the Default columns are set as per the setting in ExpertAdministrationOpen WIP Review and observe the columns available in the app.Open ExpertAdministration and go to WIP Review.Grids.MatterGrid.Check the list of Column Defaults match the columns we see in WIP Review | Expected: The columns displayed in WIP Review corresponds to the Column Defaults list in ExpertAdministration || Step 7: Make sure the Filter Defaults are set as per the setting in ExpertAdministrationIn WIP Review, check the search dataproviders that are available in the app, below the ribbon bar.Switch to ExpertAdministration and go to WIP Review.Search Criteria.MatterGrid, and check the list of Filter Defaults. | Expected: The search data providers displayed in WIP Review corresponds to the Filter Defaults list in ExpertAdministration || Step 8: Look and Feel | Expected: App opens with every button enabled on the ribbon except Refresh and Initiate Prebill. Grids should be empty with 4 search filters || Step 9: Search for client 1 | Expected: Matter returned with 0 WIP values || Step 10: Turn on 'Matter has outstanding WIP' (advanced find) and search for client 1 | Expected: No row returned || Step 11: Search for client 2 | Expected: Matters returned with WIP values || Step 12: Select more than one matter and select Initiate Prebill prebill from the ribbonThen select Send to Prebill from the popup || Step 13: Check that the matters are locked | Expected: * Items display as locked in the gridSELECT l.TABLE_NAME,CASE WHEN TABLE_NAME ='BLT_BILL'THEN b.PREBILL_NUM END [Prebill],l.TABLE_ROW_UNO,l.LOCK_OWNER,l.LOGIN_ID,l.GUID,l.LOCK_REASON,l.MODULE_NAME,TABLE_ROW_UNO,l.LAST_MODIFIED--,FROM CMS_LOCK lLEFT JOIN BLT_BILL b ON b.TRAN_UNO = l.TABLE_ROW_UNOORDER by b.PREBILL_NUM || Step 14: Check that prebill request is inserted in the BOS queueNote: This smoke test does not cover what BOS does with the item in the queue past this point - that is cover in the base tests. | Expected: * Items have a row in the BOS queueSELECT*FROM BOS_REQUEST_QUEUE ORDERBY LAST_MODIFIED DESC || Step 15: Clean up | Expected: If your BOS is not set up then you'll need to remove the locks before you can reuse the mattersDELETE FROM CMS_LOCK WHERE TABLE_ROW_UNO ="
+72103,change Premium/discount by percentage for a Bill,Design,ExpertSuite\Billing\Billing App\Paperless PreBill\Markup Workflow\Prebill Summary Edits,2012-04-26T04:52:39.9Z,,"Step 1: Open 'AppShell > Billing > Billing Setup > Billing Parameters'.Enable 'Credit Realization > Premium/Discount Credits'Ensure Advanced Premium Discounts is disabled || Step 2: Navigate to Bill Summary page > Premium/Discount field || Step 3: Double click on the value field and on the pop up card you can see the Amount and Percentage radio buttons || Step 4: Click on Percentage and enter a percentage in the value text box || Step 5: click ok | Expected: the value showing now should be the marked down or up the original value, according to the % you entered"
+72117,Test test,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill,2012-04-26T23:13:39.52Z,,
+72129,Last Reason is Defaulted in Application,Ready,ExpertSuite\Billing\Billing App\Paperless PreBill\Markup Workflow\Return Prebill to WIP,2012-04-27T04:22:28.837Z,,
+72140,Rate Recalculation Triggers Visual Indication,Ready,ExpertSuite\Billing\Billing App\Paperless PreBill\Markup Workflow\Revaluation,2012-04-29T23:14:09.64Z,"Open Prebill Markup Task
+Edit Action code on a time entry to an action code that has a different rate
+Action code change is noted, however, there is no visual indication to the user that the rate has changed.  This important resulting edit needs to be highlighted to the user.
+ 
+Will only work if the currency of the action code and the matter is the same","Step 1: Setting up in Rates - For action code 'Contains Unit Defaults (Rate) fro Matters (MAT)' and set currency to USD and Unit Rate of $555- For action code 'Mortgage Application (MORT)' and set currency to GBP and Unit Rate of $50 || Step 2: Navigate to Time page || Step 3: Right-click on column header > column >Action | Expected: Column added to the end of the grid || Step 4: Right-click on column header > column >ActualTimekeeper | Expected: Column added to the end of the grid || Step 5: To test @RecalculationOfRate choose a time entry and double click on the context of the Action grid, change to 'Contains Unit Defaults (Rate) fro Matters (MAT)' | Expected: Will get a prompt for an Adjustment Reason || Step 6: Select an Adjustment Reason and hit 'ok' | Expected: Orange * should appear in Hourly Rate and Bill Amount to indicate that they have be auto recalculated, they should now be $555 || Step 7: Right-click on column header > evaluate rate > | Expected: The default should be Auto || Step 8: Click Manual || Step 9: To test @RecalculationOfRate choose a time entry and double click on the context of the Action grid, change to 'Contains Unit Defaults (Rate) fro Matters (MAT)' | Expected: Will get a prompt for an Adjustment Reason || Step 10: Select an Adjustment Reason and hit 'ok' | Expected: Warning sign should appear in Hourly Rate and Bill Amount || Step 11: Click on the warning signs | Expected: Orange * should appear in Hourly Rate and Bill Amount to indicate that they have be auto recalculated, they should now be $555 || Step 12: To test @RecalculationOfRate choose a time entry and double click on the context of the Action grid, change to 'Mortgage Application (MORT)' | Expected: Will get a prompt for an Adjustment Reason || Step 13: Select an Adjustment Reason and hit 'ok' | Expected: Warning sign should appear in Hourly Rate and Bill Amount if it's in manual mode || Step 14: Click on warning sign | Expected: Rate is not recalculated"
+72177,Red Flagged Words enabled in Prebill Application,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Markup Workflow\Narrative Editor,2012-04-30T04:22:52.39Z,"Client level words 
+In Expert Time red flagged words are validated at the firm or matter level.  You are able to also set them up at the client level for use as a default to the client’s matters.  We don’t check the client level but from a maintenance perspective we allow you to set them up at a client and copy them down to the matter.","Step 1: Setting up the words to Flag (Note: don't set any up just yet, just use this guide to set up in the following steps...) | Expected: Setup guide in the wiki - http://ttwiki/wiki/index.php?title=Titan_Time#Red_Flagged_Words || Step 2: Open CMS and go to @Levels > Red Flagged Words to set the words for @Levels set @firstWord and replace it with @secondWord (all for Client 10901 and Matter 1) | Expected: matter level words should only apply to the specific matter and client level words apply to all matters of that client. Firm level words apply to all bills . For example: getting one flagged should only be in matter 1 of 10901 but matter 1 of 10901 should also be able to see three and five flagged || Step 3: to test @Area | Expected: by typing in the flagged word for that level, the word should show up red highlighted and when hover over it, a bubble appear with suggested word"
+72345,WIP Review > Admin App > Changes Create a Configuration Setting,Ready,ExpertSuite\Billing\Wip Review\Administration\Grids,2012-05-04T05:03:17.163Z,,"Step 1: This test should take about 5 minutes to run || Step 2: Launch Expert Administration from the ExpertShare and navigate to WIP Review > Grids > Matter Grid || Step 3: Make sure ""A/R (AR.DisplayValue)"" is selected in the Available Fields section and untick the ""Available in Stacks"" checkbox | Expected: Page should be marked as ""dirty"", so a * should appear next to the nodes WIP Review, Grids and Matter Grid in the navigation on the left, and the Save button should be enabled || Step 4: PRE-8.1 ONLY:Is there a package to save to? - choose a package or create package to save to | Expected: orange mandatory outline highlighting the package dropbox and with the 'WIP Review' defaulted in the box before a package is chosen. After the package is chosen the warning sign in next to the nodes in step2 disappear || Step 5: Click on the ""+"" button to add a new value. In the new window that pops up, expand out MatterGrid and add a field that isn't already being used (e.g. expand out AR and select ""Name"".Click ""OK"" to add | Expected: The new field apears at the start of the list of Available Fields || Step 6: Click on the Save button | Expected: The * should disappear and a firm level config value should now be created in Configuration Manager under Preference.AvailableProperties.MatterGridInstances | ExpertWipReview"
+72464,Initiate Prebill from WIP review (Boss) - End to End,Closed,ExpertSuite\Billing\Wip Review,2012-05-07T22:44:59.273Z,,
+72475,WIP Review > Admin App > Customizing and Consuming Matter Grid,Ready,ExpertSuite\Billing\Wip Review,2012-05-07T23:19:28.39Z,,"Step 1: Launch Expert Administration from the ExpertShare and navigate to WIP Review > Grids > Matter Grid || Step 2: Find ""Matter Office (MatterOffice.DisplayValue)"" and change the Label to be ""Matt Offc"" | Expected: Page should be marked as ""dirty"", so a * should appear next to the nodes WIP Review, Grids and Matter Grid in the navigation on the left, and the Save button should be enabled || Step 3: In the Column Defaults section, move ""A/R (AR.DisplayValue)"" down to the end of the list using the arrows || Step 4: In the Stacked Defaults section, move ""Client Name (ClientName.DisplayValue)"" to the end of the list || Step 5: PRE-8.1 ONLY:Choose a package || Step 6: Click on the Save button | Expected: The * should disappear and a firm level config value should now be created in Configuration Manager under Preference.AvailableProperties.MatterGridInstances | ExpertWipReview || Step 7: Clear cache and launch Expert WIP Review || Step 8: Check for the changes that you made in Expert Administration | Expected: - Matter Office column is now ""Matt Offc""- ""A/R"" column is now at the end of the grid- ""Client Name"" is now at the bottom of the stacked grid (the first column)"
+72534,WIPReview App Matter Grid,Closed,ExpertSuite\Billing\Wip Review,2012-05-08T21:29:32.03Z,,
+72802,WIP Review - Saved Searches - Creating a Firm Search,Ready,ExpertSuite\Billing\Wip Review,2012-05-15T03:19:39.637Z,,"Step 1: Setup:- Check Security Manager, make sure CanSaveFirmSearches is allowed for your user (under WipReviewAdministration module policy)- Turn on Saved Searches for each of the Available Fields in Expert Administration under WIP Review > Search Criteria > Matter Grid
+- Clear User Cache || Step 2: Launch Expert WIP Review, either from the Expert Assistant action menu or from your ExpertShare || Step 3: Enter data into a few search filters and ""Search"" | Expected: Returns results according to your criteria || Step 4: Click on the arrow next to ""Search"" and select ""Save as Firm"" | Expected: Can enter a new name for your saved search and then it will be available in your list of Firm Searches in the bar above your filter criteria || Step 5: Launch Configuration Manager and check under All Settings.Preference.SavedSearches.MatterGridInstances.ExpertWipReview for the name you gave your saved search | Expected: Should be able to see a list of Saved Searches and the name of the saved searches you just saved with the scope of Firm"
+72803,Save Searches - Missing (removed from user and firm level ) Cirterias,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill,2012-05-15T03:27:12.583Z,,
+72804,Saved Searches - Turning ON and OFF in Admin App,Ready,ExpertSuite\Billing\Billing App\Paperless PreBill,2012-05-15T03:27:53.36Z,,"Step 1: Navigate to @AppName > Grids > @GridType | Expected: Saved searches check box should be defaulted OFF || Step 2: Open @AppName || Step 3: Navigate to @GridType Page | Expected: Should not be able to see the Saved Searches || Step 4: Go back to Expert Admin App || Step 5: Navigate to @AppName > Grids > @GridType, and check the check box | Expected: Saved Searches are now turned ON || Step 6: Save changes and close admin app || Step 7: Open @AppName | Expected: Saved Searches dropdown box should appear in the grid title bar"
+72805,(Smoke Test) Rates Application Smoke test,Ready,ExpertSuite\Billing\Rates,2012-05-15T03:30:27.52Z,Smoke Test for the rates application. Should take user 15 or so minutes to run. Ideally performed on the ITE.,"Step 1: Check and Show all Search Criterias in Advanced Search drop down list | Expected: 4 extra filters will be added to the bottom of the group of default searches || Step 2: Search for rates using 'All' Office Rate criteria. Change rate level to standard and search again | Expected: You should see multiple Timekeeper and rank rates being retrieved. Timekeeper and rank rates have now been filtered after rate level is set to standard.*If you collapse the Rank and Timekeeper headers you will be able to see the rate count change between setting the Rate Level from empty to Standard || Step 3: Add a timekeeper rate via the grid inline add, using the currency code 'SKK'. Search for rates added in the currency SKK after the rate is added | Expected: The search yields one search result, which is the SKK rate you've just saved. Once the rate is added, the grid should immediately display the added rate since it fits our search criterion || Step 4: Note: select a Test user for the security test in the next step. If your user is not privilege level 1, you will not be able to view/edit/delete any rates with row level security || Step 5: Add a rank rate, this time via the ribbon New - >Rank rate method (a) Set rate security on this new rate, using SKK currency also. (b) Add a test user, in this case TTQA3 will be used as a grant all for this rank rate. || Step 6: Open up the previously added SKK rate and invoke security, but do not add any users to the security policy. || Step 7: Open another copy of rates app as TTQA3 (shift right click -> start as a different user) and search for SKK rates. | Expected: After security policies are added, (a) TTQA3 version of rates app should only retrieve one SKK rate. (b) The totally secured SKK rate is not viewable by TTQA3 as TTQA3 does not have administrator privileges (which would make it exempt from security) (c) Existing security policy is viewable for TTQA3 on the rate which TTQA3 has rights to. || Step 8: Go to the Rate set node of the Firm tab, and choose an existing rate set. | Expected: All rates belonging to the rate set should be displayed on choosing the rate set. || Step 9: Choose the first rate of the top row, and duplicate this rate to a new rate set. Name this rate set as 'TestRATE1' code, with 'testing rate set' as description. | Expected: When duplicating to a new ratest, all fields except those pertaining to the new rate set should be disabled || Step 10: Change the rateset selected for the rateset grid to the new TestRATE1 set. | Expected: After selecting the new rateset, the single rate duplicated should be returned as an available rate of the new rate set. || Step 11: Browse the client grid, and choose a client. Then go to matter grid and choose a matter. | Expected: Either tabs should have all fields enabled after a client / matter is selected (respectively). || Step 12: Go back to firm tab, and select a rate from the SKK currency which was created in step 2. Delete this rate via the ribbon, and then refresh search results for SKK currency. | Expected: Once the rate is deleted, it should not exist and thus you will not find it via the search results. Deletes should take immediate effect on the grid. || Step 13: Create a level timekeeper rate and export this time keeper rate | Expected: spread sheet generated || Step 14: Import the rate you just exported with no changes to the spreadsheet | Expected: After validating, we should see UI showing 1 rate with an information and an error, telling us 'this rate already exist and will be updated"" and that you have to change the rate to a new value || Step 15: Double click on the rate record to edit the rate value, type in a new value | Expected: the info and error icons on the far right column should disappear and the value cell updated || Step 16: Click on import and finish the wizard | Expected: Should import sucessfully || Step 17: Search for your updated rate | Expected: Search for your updated rate"
+72807,Saved Searches - Global Variable End to End,Ready,ExpertSuite\Billing\Wip Review,2012-05-15T03:44:04.353Z,"These dynamic variables we need are
+- @Me    to be used in the Employee dataprovider  
+- @MyOffice   to be used in the Office dataprovider  
+- @MyDepartment  to be used in the Department dataprovider 
+- @MyProfitCenter  to be used in the Profit Center dataprovider 
+ 
+Future: 
+Also – but not needed for Wip Review
+- For any date  @Today   and 
+-     @Now 
+- @Today-30 (to do previous month or something like that)",
+72808,Global Variables - End to End,Design,ExpertSuite\Billing\Billing App\Paperless PreBill,2012-05-15T03:47:47.363Z,"These dynamic variables we need are
+- @Me    to be used in the Employee dataprovider  
+- @MyOffice   to be used in the Office dataprovider  
+- @MyDepartment  to be used in the Department dataprovider 
+- @MyProfitCenter  to be used in the Profit Center dataprovider 
+ 
+Future: 
+Also – but not needed for Wip Review
+- For any date  @Today   and 
+-     @Now 
+- @Today-30 (to do previous month or something like that)",
+72810,(Sanity Test) Rates Application Sanity test,Ready,ExpertSuite\Billing\Rates,2012-05-15T03:55:57.3Z,Sanity Test for the rates application. Should take user 5 minutes or so to run. Ideally performed on the ITE.,"Step 1: Start rates application, and search for rates using 'All' Office criteria. Change rate level to standard and search again | Expected: You should see multiple Timekeeper and rank rates being retrieved. Timekeeper and rank rates have now been filtered after rate level is set to standard. || Step 2: Add a timekeeper rate via the grid inline add, using the currency code 'SKK'. Search for rates added in the currency SKK after the rate is added | Expected: The search yields one search result, which is the SKK rate you've just saved. Once the rate is added, the grid should immediately display the added rate since it fits our search criterion || Step 3: Browse the client grid, and choose a client. Then go to matter grid and choose a matter. | Expected: Either tabs should have all fields enabled after a client / matter is selected (respectively). || Step 4: Go back to firm tab, and select a rate from the SKK currency which was created in step 2. Delete this rate via the ribbon, and then refresh search results for SKK currency. | Expected: Once the rate is deleted, it should not exist and thus you will not find it via the search results. Deletes should take immediate effect on the grid. || Step 5: Create a level timekeeper rate and export this time keeper rate | Expected: spread sheet generated || Step 6: In the spreadsheet you just exported, change the timekeeper currency, and Import the spreadsheet | Expected: Wizard should go through and new rate imported. || Step 7: Click on import and finish the wizard | Expected: Should import sucessfullly"
+72811,WIP Review - Proxy End to End,Closed,ExpertSuite\Billing\Wip Review,2012-05-15T04:02:05.28Z,,
+72812,Matter has outstanding WIP search,Closed,ExpertSuite\Billing\Wip Review,2012-05-15T04:27:18.543Z,,"Step 1: Launch WIP Review and select the Advanced Search drop down from the ribbon | Expected: Check to see if the ""Matter Has Outstanding Total WIP"" option is selected (if it isn't, select it) || Step 2: Search for a client that has some matters with WIP and some without --Check Billing Desktop for this - if you have no clients that fulfill this criteria, enter in several matters in the matter search field, some with WIP and some without-- | Expected: With this option ticked, only matters with WIP will be returned. Any matters with $0 WIP will not display in the grid. || Step 3: Go to the ribbon and make the option deselected (if you are testing this on 80SP2HF01 or later, a message will come up to notify you the search may take some time - click continue/display if this is the case) | Expected: Once this option is deselected, all matters will be displayed in the grid, even those with $0 WIP"
+72813,Testing BOS - WIP Review,Design,ExpertSuite\Billing\Wip Review,2012-05-15T04:34:28.89Z,"select * from BOS_REQUEST_QUEUE order by LAST_MODIFIED desc
+ 
+select * from CMS_LOCK",
+72814,Billing Desktop - Workflow Initiate,Design,ExpertSuite\Billing\Wip Review,2012-05-15T04:36:29.867Z,,"Step 1: Search for a matter with WIP that is not already in billing desktop | Expected: one matter selected || Step 2: rightclick on the selected matter entry and in the right click menu choose Intiate prebill | Expected: A lock icon should appear on the top right hand corner of the details column of the matter entry || Step 3: Hover over the lock to ensure the information is correct || Step 4: Refresh the grid | Expected: if perbill had been initiated then the entry should disappear from the grid, if the only the lock icon had disappear but the entry is still there then the prebill has not been initiated so please eventviewer for error. If the lock doesn't get remove after several refreshes then please check if BOS is running || Step 5: Start up Appshell and navigate to billing desktop | Expected: See your initiated bill in the list of all bills || Step 6: Launch the bill | Expected: Can see it in prebill application"
+72815,Initiate Prebill - UI test,Design,ExpertSuite\Billing\Wip Review,2012-05-15T04:38:37.883Z,,"Step 1: Initiate prebill button on Ribbon bar | Expected: Only enabled after a matter is select || Step 2: Initiate Prebill window | Expected: Default Settings- Bill Date, Deselect Date, Time Trans Date To, Disb Trans Date To is defaulted filled with the Max Date and Bill Fees and Bill Disbursements checkboxes should be ticked || Step 3: Bill Date | Expected: Default - Max Date you setup in CMS. Rule: Must be less than or Equal to the Max Date || Step 4: Deselect Date | Expected: Default - Max Date || Step 5: Time Trans Date (From and To) | Expected: Default: From = optional, To: Max Date. Rule: To - Must be greater than bill date and must be greater than from date || Step 6: Disb Trans Date (From and To) | Expected: Default: From = optional, To: Max Date. Rule: To - Must be greater than bill date and must be greater than from date || Step 7: Time Post Date (From and To) | Expected: Default: From = optional, To: Max Date. Rule: To - Must be greater than bill date and must be greater than from date || Step 8: Disb Post Date (From and To) | Expected: Default: From = optional, To: Max Date. Rule: To - Must be greater than bill date and must be greater than from date || Step 9: Prebill Instructions | Expected: Text box || Step 10: Send to Prebill Button | Expected: Only enabled if there are no errors in the dates entered"
+72817,Prebill Sanity Test,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill,2012-05-15T09:42:17.577Z,,
+72828,Saved Searches - End to End,Design,ExpertSuite\Billing\Wip Review,2012-05-15T22:01:49.003Z,,Step 1: Open @Application NOTE: SP2HF01 no saved searches in Time or Rates. || Step 2: Navigate to Saved Searches in the title bar and open drop down list | Expected: Able to see a list of Saved Firm and My Saved Searches || Step 3: Choose a Firm Search  and hit Search | Expected: Brings back the expected results from the given filter || Step 4: click on the little down arrow on search button and select clear all | Expected: Clear all Filters || Step 5: in the @FirstFilter and choose @FirstFilterContent || Step 6: in the @SecondFilter and choose  @SecondFilterContent || Step 7: hit Search | Expected: Brings back the expected results from the given filter || Step 8: click on the little down arrow on search button and select Save | Expected: A pop up dialogue should appear for the user to enter the title of the saved search || Step 9: Type in @SaveSearchName and hit Save | Expected: now the new saved search should appear in the Saved Search drop down list || Step 10: While the @SaveSearchName filters are still on showing remove the content of @FirstFilter || Step 11: click on the little down arrow on search button and select Save As | Expected: A pop up dialogue should appear for the user to enter the title of the saved search || Step 12: Type in @SaveSearchSaveAsName and hit Save | Expected: now the new saved search should appear in the Saved Search drop down list
+72829,Saved Searches - Areas to Test,Closed,ExpertSuite\Billing\Wip Review,2012-05-15T22:16:24.897Z,,
+72830,Transfers - Edits to time/disbursement entries are removed when the entries are transferred,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill,2012-05-15T22:21:10.433Z,We had to remove the ability for users to be able to edit time entries and then transfer them as it wasn't working correctly. We had amounts getting changed/edited incorrectly when the entries were transferred.,"Step 1: Note: Previous to 80SP3, edits to Bill Hours (or Amount applied to Hours) are kept when an entry is transferred. Rate (or Amount applied to Rate) edits are removed. This didn't/doesn't work correctly in previous releases though, so all changes to amount are removed when entries are transferred for 80SP3. || Step 2: Navigate to @PageName || Step 3: On the first @PageName entry, make at least one change to that @PageName entry | Expected: should see the changes on the grid and the changes tab || Step 4: Transfer this @PageName entry | Expected: A dialogue comes up to say any changes made to entries will be removed.Check the transferred entry, the edits should have been removed and the entry transferred.Changes tab shows only the time entry transferred, not the edit made before the entry was transferred. || Step 5: Edit 2 other @PageName entries, and then highlight those two plus one other entry. Right-click and ""Transfer"" | Expected: Get a dialogue come up saying edits will be lost on 2 entries.Once transferred, the edits have been lost. In the Changes tab, we have 4 entries transferred and no time edit changes. || Step 6: Complete the Task || Step 7: Open Billing Desktop in CMS and open up the bill you just completed | Expected: the status should now be pending edits and unlocked || Step 8: Open up Activity Panel by going to Options > Show Activity Panel | Expected: the Activity Panel should show up on the right hand side of the page with a list of pending edits || Step 9: Find the Time Transfer edit in the list of pending edits | Expected: There should only be a transfer edit - no entry edit to accept."
+72879,Transfer - On and OFF the Bill,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill,2012-05-17T01:09:39.757Z,,"Step 1: Use a multi matter bill for this test (using Arden in this case) || Step 2: In Matter 1, navigate to Disbursement page || Step 3: Select the first Disb entry and perform a Transfer and Transfer the entry to Matter 2 of the same bill | Expected: Navigate to Matter 2 > Disbursement and you should be able to see the transferred disbursement entry || Step 4: Go to Matter 3, in Time page perform a transfer on a time entry, this time transfer it to another bill | Expected: Save this bill and open the bill you transferred you time entry to, should be able to see the transferred entry (note: in SP2HF01 you have to complete the workflow before the changes are made to the second bill)"
+72976,(Smoke Test) Prebill Smoke Test (based on Paperless/classic integration - Pre 8.1),Closed,ExpertSuite\Billing\Billing App\Paperless PreBill,2012-05-18T03:06:37.24Z,,"Step 1: Note: Please set up the Docudraft Paths according to this ttwiki page http://ttwiki/wiki/index.php?title=Configuring_Docudraft_pathsMake sure you have the security resource for using the Narrative Editor in Security Manager || Step 2: Validate that the Billing Desktop indicates the workflow is running succesfully | Expected: In the Billing Desktop, the prebill has a state of {Workflow Name}, the assigned to user is the user that has recieved the task. If user tries to open the prebill in the desktop, user is warned that is it locked. Task PDR's are accurate || Step 3: Ensure the task is healthy | Expected: Navigate to all the pages and ensure everything is loaded. Details page loads smart forms. On inquiries check all 4 types in the SHOW menu (there is no pre req to set the data to display in all these selections). In time/Disbursements ensure all views can be seen under SHOW || Step 4: In the toolbar - select return bill to WIP | Expected: In the changes pane, 1 entry for return to wip will be show. No other action can be done except adding notes || Step 5: In the changes pane undo the return to WIP | Expected: Change is Removed and the UI is freed up for other changes || Step 6: Make the following edits to time & Disbursments: return to WIP, Transfer, Split, Amount edit, hours edit, Narrative edit | Expected: Ensure all of the changes are in the change pane. Note these changes for a later step. || Step 7: Add Notes to Time Grid, Disb Grid and a summary Grid. Use both right click and the notes icon | Expected: Notes are added to the change pane, Note these for later changes || Step 8: In the details page, add Billing instructions | Expected: Note this down for a later step || Step 9: 8.0.2: Click New Time Entry button and post a time entry. | Expected: Time can only be posted for matters on the bill and only in the bills valid time range.Time shows up after posting in the Prebill. || Step 10: 8.0.2: Open Expert Time and Post a time entry to create WIP for your Prebill task | Expected: Time Entry is created with status posted WIP. Clicking Refresh WIP in Prebill shows that there is new WIP available and the Gather WIP button becomes enabled. || Step 11: 8.0.2: Click Gather WIP, select the matter you created WIP for and click ok | Expected: New WIP is gathered and is shown in the Prebill. || Step 12: Print the Prebill- Preview Audit Report | Expected: Document Opens and all of the changes that have been made are shown in the document8.0.2: New Time and gathered WIP is displayed || Step 13: Preview Prebill | Expected: Docudraft invoked and a draft prebill word doc shows with the time and disbursement records || Step 14: Preview Bill | Expected: Docudraft invoked and a draft bill word doc shows. ""Draft"" Watermark accross the doc and all changes are incorporated into the bill8.0.2: New Time and gathered WIP is displayedNote: The tax and auto disbursement values show as the newly calculated values even tho they a. show the old values on the grid b. have the old values stored on the bill table || Step 15: Launch Narrative Editor, change a narrative, ensure spell check is invoked, the expansion codes are available when ""="" is typed. | Expected: Changes are added to the changes || Step 16: Check the edit summary tab and ensure that all changes are reflected in the amounts | Expected: Written up down numbers wil have changed, transfers shown etc || Step 17: Check that the narrative changes you made have been saved already by navigating to | Expected: Narratives are updated for the time line || Step 18: Complete the Task | Expected: Ensure that an audit report has been saved to the location specified, workflow will complete. in the billing desktop, the Bill will change to a status of pending edits. Note: If edits exceed the theshold ,the Status will change to '*Expert Paperless Prebill Markup' as it will kick of an approval task from the Markup WF || Step 19: Open the Bill in the billing desktop, make sure you check the 'Show Activity Panel' under Options | Expected: All changes noted earlier display in the pane || Step 20: Go through each change and initiate the transaction comparing them to the data you recorded earlier from the changes pane. | Expected: each transaction will invoke the correct change in the system, check values have been updated. || Step 21: Once complete select ""Edit Complete"" | Expected: The Approval Workflow will be launched.Note: The WF will run but not create a task unless the markdown is over a certain amount. (5000) || Step 22: Validate that the Billing desktop indicates the workflow is running succesfully | Expected: In the Billing Desktop, the prebill has a state of {Workflow Name}, the assigned to user is the user that has received the task. If user tries to open the prebill, user is warned that is it locked. || Step 23: Launch three more workflows. Open each of these and mark down at least $3000 on each workflow. Complete the task. In Billing Desktop, double click on the workflows, accept and edits and select ""edits complete"". Note: These can be 3 different client/matters. This step is setting up for the next step | Expected: User should get 3 finance approval tasks once the approval workflow has been kicked off || Step 24: Select the 3 finance approval tasks, and on one of the tasks, right-click and select ""Review All"" | Expected: A new window pops up with a list of the approval tasks you have in your inbox. You can select the approval decision under ""Options"" field (required) and also choose an option to apply to all from the ribbon. There are several columns listing details of each of the prebills (Prebill Details, Prebill Number, Bill Date, Bill Amount, Fees on Bill, Fees Written Up/Down, Fees Available WIP, Disbursements on Bill, Disbursements Written Up/Down, Disbursements Available WIP, Bill Number and Prebill Responsible Timekeeper - these may not all be default columns so you may need to right-click on one of the column headers and add these to the grid)"
+73161,Add edit and remove available default search criteria from Rates Grids,Design,ExpertSuite\Billing\Rates\Configuration\Search,2012-05-24T01:23:34.25Z,,
+73163,Rates Manual Performance Test,Design,ExpertSuite\Billing\Rates\Non Functional,2012-05-24T01:43:23.58Z,,
+73164,Service Down Exception handling,Design,ExpertSuite\Billing\Rates\Non Functional,2012-05-24T01:50:12.163Z,,
+73172,Export rates using different modes,Design,ExpertSuite\Billing\Rates\Export,2012-05-24T03:18:25.2Z,,
+73173,Export Client Rates of different types,Design,ExpertSuite\Billing\Rates\Export,2012-05-24T03:20:06.533Z,,
+73174,Export Firm Rates of Different Types,Design,ExpertSuite\Billing\Rates\Export,2012-05-24T03:24:46.24Z,,
+73175,Export Matter Rates of different Types,Design,ExpertSuite\Billing\Rates\Export,2012-05-24T03:25:09.977Z,,
+73485,Reassign a prebill in the Billing Desktop,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Classic Billing Integration\Workflow Interaction,2012-06-06T01:25:48.677Z,,
+73655,Rates/CMS - Using the right level of the rates hierarchy to determine the rate,Design,ExpertSuite\Billing\Rates\CMS Integration,2012-06-13T03:16:45.713Z,,"Step 1: Navigate to Matter page || Step 2: Select a client matter | Expected: using UK client with matter C1 || Step 3: Delete any previous timekeeper rates in all of the Matter Rates, Client Rates and Rate Set Rates (if any atttached) | Expected: making sure we test with clean data || Step 4: Attach a Fee Rate Set and create a timekeeper rate with timekeeper NZ81, currency GBP and a rate of 123 | Expected: After saving this rate it should automatically been put on the grid if there are no filters selected || Step 5: Open up Time Rate Calculator fill in with NZ81, Uk Client C1 and leave the action code as the default | Expected: Should pick up the rate of 123 pounds and source of rate is Matter Rate Set || Step 6: Create a Client Rank rate for the same matter with rank =  Partner,  start date = today, currency = GBP and Rate = 456 | Expected: After saving this rate it should automatically been put on the grid if there are no filters selected || Step 7: Open up Time Rate Calculator fill in with NZ81, Uk Client C1 and leave the action code as the default | Expected: Should pick up the rate of 456 pounds and source of rate is Client Rank Rate. (Note: if client rank rate is not being calculated, check ""Allow Special Rates"" is ticked in CMS Employee Management > Time and Billing. Also check that the rank of your user is the same as the rank rate) || Step 8: Create a Matter Rate to this matter with timekeeper NZ81, currency GBP and a rate of 789 | Expected: After saving this rate it should automatically been put on the grid if there are no filters selected || Step 9: Open up Time Rate Calculator fill in with NZ81, Uk Client C1 and leave the action code as the default | Expected: Should pick up the rate of 789 pounds and source of rate is Matter Timekeeper Rate || Step 10: Navigate to Firm > Action Code and Change the currency of MORT action code to GBP and with a unit rate of 50 pounds || Step 11: Open up Time Rate Calculator fill in with NZ81, Uk Client C1 and change the action code to MORT | Expected: Should pick up the rate of 50 pounds and source of rate is Action code"
+74172,Rate Set Info Card,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Sets,2012-06-28T04:12:52.187Z,,
+74175,Importing rates with/without warning/information  (triggering validation UI),Design,ExpertSuite\Billing\Rates\Import,2012-06-28T04:47:55.06Z,,
+74199,Searching for Rates End to End (level Rates),Design,ExpertSuite\Billing\Rates\Application\Searching,2012-06-29T02:25:51Z,,
+74223,Search for Large Result Set in Rate Set rate Search,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Sets,2012-07-01T22:39:27.797Z,"We've made performance changes for 80SP2HF01 regarding the slow loading of rate sets - we now have paging enabled as a default for rate sets so it does take a while to load a rate set with 15000 rates, but it does it in sections of 250 rates so you're still able to interact with the app and edit rates as it is loading.",
+74224,Manage a Rate Set,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Sets,2012-07-01T22:55:05.16Z,,"Step 1: Navigate to the rate set rates, and select a rate set. | Expected: Rates are displayed for the rate set. || Step 2: Under actions open the ""manage rate set dialogue"". Change the desc, Note and active flag, and save. | Expected: All changes are made, check in  TBL_RATE_SET, as well as in client server under Hub setup > Time and billing setup > Rate Sets. || Step 3: Set the rate set back to active. || Step 4: Back in the rate set under actions, use the attach client/matter fields to attach new clients and matters. | Expected: Return to the manage dialogue and the count would have updated for client and matter. || Step 5: Set the clients and matters to inactive by giving it an end date before today | Expected: Ensure the manage dialogue updates to show inactive rates. || Step 6: Use the Scripts to load a large number of matters to a rate set. | Expected: Ensure the matter/client count matches the rate set info card and the db table TBL_MATT_RATESET || Step 7: Launch theManage rate set dialoge for disbursements and fees | Expected: Ensure the dialogue opens straight away (Prevously it was getting held up to count the matters), and that the matters flag does return the correct number IN TIME."
+74236,Create Rates after using search Criteria,Design,ExpertSuite\Billing\Rates\Application\Searching,2012-07-02T02:02:07.497Z,,"Step 1: On any Grid, search using a @Searchtype and then return rows. | Expected: Rows appear in the grid || Step 2: Create a new single Rank Rate using the add rank button on the top of the grid. Use any criteria | Expected: On save the rank rate is added to the grid despite what the grid criteria was. SP2HF1 - the rows are not added to the grid if the search criteria doesn't match the criteria on the rate you just added. || Step 3: Create a new single Employee Rate using the add timekeeper button on the top of the grid. Use any criteria"
+74237,Attach a Rate Set to a Matter,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Sets,2012-07-02T02:08:32.85Z,,
+74374,If you add aditional controls to the PB Markup billing instructions Duplicate Notes should not be created,Ready,ExpertSuite\Billing\Billing App\Paperless PreBill,2012-07-05T03:07:30.44Z,,
+75110,Cannot start rates application without RatesUser policy,Closed,ExpertSuite\Billing\Rates\Security,2012-07-13T02:10:35.49Z,"Ensuring the rates app is secured, users without the RatesUser security policy cannot start the application",
+75111,Framework security policy base test,Ready,ExpertSuite\Billing\Rates\Security,2012-07-13T02:10:35.977Z,"There are two rates security policies: RatesUser and RatesAdministration
+ 
+The following are rates-specific security policies:
+-AllowImport
+-AllowMassEditDuringExport
+-AllowRatesRowSecurity
+-AllowSpreadsheetEditsDuringExport
+-DeleteRates
+-ExpertRatesAdministration
+-ExpertRatesApplication
+-RetireTimekeeperRates
+ 
+Base test creates a copy of the policy and assigns to a test user for testing the different areas the security policy is meant to control",
+75112,Security for importing as an edit,Closed,ExpertSuite\Billing\Rates\Security,2012-07-13T02:10:36.12Z,"Rate User> Rates> AllowImportToUpdateExistingRates
+ 
+If this policy is unchecked then users should not be able to update rates via import",
+75113,Attach rate sets to a client,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Sets,2012-07-13T02:10:36.247Z,,
+75114,Attach rate sets to a matter,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Sets,2012-07-13T02:10:36.373Z,,
+75115,Rate Set Maintenance,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Sets,2012-07-13T02:10:36.497Z,,"Step 1: Create a new rate set via the rate set action tab (beside the 'Choose Rateset' control) | Expected: Rate set is saved successfully into TBL_RATE_SET : select * from TBL_RATE_SETAny notes entered will also be saved in the Note column. || Step 2: Create new rates for your rate set - at least 5 or so || Step 3: Attach your Rate Set to a Matter (Manage Attached Matters) | Expected: Attached Matters are saved in TBL_MATT_RATESET || Step 4: Duplicate the rate set | Expected: All rates are copied over to the new rate set - matters and clients can only be attached to one rate set at a time, so these are only copied if duplicating at matter or client level || Step 5: Go back to your original rate set and delete an existing rate | Expected: Confirmation message is displayed. User is able to delete via right-click and ribbon actions || Step 6: Select another rate and duplicate it to a new currency | Expected: New rate added to TBM_RATE_FEE || Step 7: Select another rate and duplicate it to a new rate set | Expected: Rate set added to TBL_RATE_SETRate added to TBM_RATE_FEE || Step 8: Select a different rate and edit it | Expected: End Date, Rate, and Security can be edited || Step 9: Check the Rate Info Card (icon next to Rate Set name/dropdown) for attached matters and clients, and notes (notes added in Hub Setup > Time and Billing Setup > Rate Sets) || Step 10: Go to Actions and manage the rate set- Change the Description, Note, and Active Flag | Expected: All changes saved in TBL_RATE_SET || Step 11: Search for rates using the filter criteria | Expected: Select * from TBM_RATE_FEE where RATE_SET_UNO = #"
+75116,Deleting rate set rates,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Sets,2012-07-13T02:10:36.623Z,,
+75117,Duplicate rate set,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Sets,2012-07-13T02:10:36.753Z,,
+75118,Duplicate rate set rates,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Sets,2012-07-13T02:10:36.883Z,,
+75119,Duplicate to a new rate set,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Sets,2012-07-13T02:10:37.007Z,,
+75120,Edit existing rate set rates,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Sets,2012-07-13T02:10:37.137Z,,
+75121,Editing Rate Set Rates,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Sets,2012-07-13T02:10:37.26Z,,"Step 1: Go to Firm->Rate set and use an existing rate set
+
+Create a new timekeeper rate set rate with currency SKK || Step 2: Click on the grid row fields to edit the rate value
+
+Change the value to $100
+
+Double click to open the rate detail card | Expected: The rate detail card shows all information and includes the $100 as the rate value || Step 3: Right click on the rate and open the rate detail card. (SP2 - no longer have the option to open rate card from right-click menu)Change the value to $250Save the changes | Expected: The rate set rate grid should display the rate with the updated value of $250 || Step 4: Duplicate this rate via right click to a new currency (MXP)
+
+Open the new rate's detail card | Expected: The detail card should show identical fields to the original rate except the currency."
+75122,Override rate with markups,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Sets,2012-07-13T02:10:37.387Z,,
+75123,Rate set Advanced timekeeper search - Search based on one criteria and several criterion,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Sets,2012-07-13T02:10:37.517Z,Single criteria search,"Step 1: Begin by adding a timekeeper rate, and click advanced hyperlink beside the timekeeper search box | Expected: The timekeeper selection dialogue is displayed || Step 2: Check all buttons in the top navigation strip | Expected: - Use Selected (should only be usable when a/some timekeeper(s) is/are selected)- Cancel- Advanced Search (should reflect the settings in the Admin app, the defaults should be ticked) sometimes user config needs to be deleted and cache cleared for the defaults to be showing || Step 3: Columns can be dragged around to change the order by right-clicking on the column header | Expected: - Columns (the defaults are checked and correspond to the settings in the admin app under Grid > Client Selection)- Proportional Column Widths (default is checked)- Uncheck lets you alter the column width || Step 4: Collapse button (the button with 2 up arrow) will collapse the search criteria area when clicked || Step 5: Right-clicking on the grid | Expected: - Select All- Reverse select these will only be available if the returned field allows multi-select || Step 6: Select 'London' as office search criteria, and search.Tables the attributes are drawn from:HBM_Persnl: Timekeeper, Office, Department, Anniversary, CurrencyTBM_Persnl: Rank | Expected: Timekeeper: Expenses, CiO C.Rank: 3Office: LondonDepartment: AdministrationAnniversary: 0Currency: GBPTimekeeper: Expenses, CiO DRank: 7Office: LondonDepartment: AdministrationAnniversary: 0Currency: GBP || Step 7: Open advanced timekeeper search dialogue box and :Set Rank = PartnerSet currency = EuroCorresponding SQL : select * from HBM_PERSNL where EMPL_UNO in(select EMPL_UNO from TBM_PERSNL where RANK_CODE = '1')and CURRENCY_CODE = 'EUR' | Expected: Timekeeper : Schmidt, WilliamRank : 1 / PartnerOffice : FrankfurtDepartment : AdministrationAnniversary:  0Currency: Euro || Step 8: Set department = CorporateCurrency = 'USD'Corresponding SQL:select * from HBM_PERSNL where EMPL_UNO in (select EMPL_UNO from TBM_RATE_FEE where CURRENCY_CODE = 'USD')and DEPT = 'COR' and CURRENCY_CODE = 'USD' | Expected: Department = Corporate and Currency = USD as expectedTimekeeper: Edwards, PatRank: 2 / AssociatedOffice: TallahasseeAnniversary: 0Timekeeper: Fountain, BIllRank: 2 / AssociateOffice: BuffaloAnniversary: 0Timekeeper: Jance, KathyRank: 1 / PartnerOffice: BuffaloAnniversary: 0Timekeeper: Krause, KaitlynRank: 1 / PartnerOffice: BuffaloAnniversary: 0"
+75124,Rate set Advanced timekeeper search - Search based on several criterion,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Sets,2012-07-13T02:10:37.643Z,Search based on several criterion,
+75125,Rate Set info card,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Sets,2012-07-13T02:10:37.77Z,,
+75126,Rate set search,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Sets,2012-07-13T02:10:37.9Z,,
+75127,Basic security - view only,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Security,2012-07-13T02:10:38.027Z,,
+75128,CMS security can view rates plan and vice versa,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Security,2012-07-13T02:10:38.15Z,"Security plans created in CMS can be viewed in Rates, and vice versa.
+ 
+Check that edits go through.
+ 
+Also check that security is properly applied regardless whether rates or CMS is used",
+75129,Mass duplicate - existing security - simple security,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Security,2012-07-13T02:10:38.273Z,,"Step 1: Note: Make sure all of the rates you select have existing security.Select a set of rates with the same currency, then open the rate card (right-click, ""edit"")Select the rate security button. | Expected: ""Row level security exists for one or more selected rows. maintaining rate security requires that these to be cleared and the new security plan will be applied to all edited rates. Do you want to continue?"" || Step 2: Select Clear Rate Security Check the Invoke Security checkbox | Expected: Rates security screen displayed, Invoke security checkbox is unchecked, Grid is empty and greyed User / Group search control is disabled User / group search control is enabled Grid is empty but now with background : ""Fully secured"" || Step 3: Select TTQA2 from search control Go back to rate card and save rate | Expected: Fully secured background disappears, and TTQA2 is added to the grid Check CMS_SECURE_PLAN and CMS_SECURE_ROW have been populated for each duplicated rate. select * from CMS_SECURE_PLAN order by LAST_MODIFIED desc select * from CMS_SECURE_ROW order by LAST_MODIFIED desc Also check in TBM_RATE_FEE; the SECURITY_ID should be set to the security policies created in CMS_SECURE_PLAN select * from TBM_RATE_FEE order by LAST_MODIFIED desc"
+75130,Mass duplicate - existing security - security touched then abandoned,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Security,2012-07-13T02:10:38.397Z,,"Step 1: Note: When selecting a set of rates, ensure all rates have existing security.Open a set of existing rates in a currency, right-click and select mass edit.Open the rate security dialogue | Expected: User is faced with the message : ""Row level security exists for one or more selected rows. maintaining rate security requires that these to be cleared and the new security plan will be applied to all edited rates. Do you want to continue?"" Or something similar. The user can choose: 1. Clear existing security 2. Cancel || Step 2: User selects 'Cancel - Retain all existing security plans' Change Rate and save | Expected: Check in CMS_SECURE_PLAN and CMS_SECURE_ROW for duplicated security plans and rows against the new rates. select * from CMS_SECURE_PLAN order by LAST_MODIFIED desc select * from CMS_SECURE_ROW order by LAST_MODIFIED desc Check in TBM_RATE_FEE security_ID has been updated for the new duplicated rates select * from TBM_RATE_FEE order by LAST_MODIFIED desc"
+75131,Mass Duplicate- security exists on some rates - security untouched,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Security,2012-07-13T02:10:38.523Z,,"Step 1: Note: ensure at least one of the selected rates has existing security.Open a set of existing rates, and save changes. Note: Ideally choose a set of rates from an existing currency, and duplicate this to another currency. | Expected: Rates are saved in database: select * from TBM_RATE_FEE order by LAST_MODIFIED desc  Existing security in CMS_SECURE_PLAN and CMS_SECURE_ROW from the source rows should be written to the DB."
+75132,Mass edit - existing security - clear security,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Security,2012-07-13T02:10:38.643Z,,"Step 1: Note: ensure all selected rates have existing security.Search for existing rates in the same currency, then mass edit.Go to rates security screen. | Expected: Message is displayed below for the user ""Row level security exists for one or more selected rows. maintaining rate security requires that these to be cleared and the new security plan will be applied to all edited rates. Do you want to continue?"" || Step 2: Select Clear Rate security Check the invoke security checkbox | Expected: Security screen is displayed, the Invoke Security check box is unchecked, grid is greyed, user / group search control is disabled User / group search control is enabled,grid is now white,background : ""Fully secured"" || Step 3: Return to rate card view Save Rates | Expected: Rate edit changes are saved to database CMS_SECURE_PLAN contains new rows for rates without existing security planTBM_RATE_FEE . SECURITY_ID is now <> 0 for all edited rates CMS_SECURE_ROW now has zero rows with SECURITY_ID belonging to the SECURITY_ID's in TBM_RATE_FEE."
+75133,Mass edit - existing security - remove security,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Security,2012-07-13T02:10:38.767Z,,"Step 1: Note: ensure all selected rates have existing security.Search for existing rates in the same currency, then mass edit.Go to rates security screen. | Expected: Message is displayed below for the user ""Row level security exists for one or more selected rows. maintaining rate security requires that these to be cleared and the new security plan will be applied to all edited rates. Do you want to continue?"" || Step 2: Select Clear Rate Security | Expected: Security screen displayed, the Invoke Security check box is unchecked, grid is greyed, user / group search control is disabled || Step 3: Go back to rate card Save the updated rates | Expected: TBM_RATE_FEE . SECURITY_ID has been set to 0 for all edited rate rows. select * from TBM_RATE_FEE order by LAST_MODIFIED desc"
+75134,Mass edit - no existing security - no security,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Security,2012-07-13T02:10:38.893Z,,"Step 1: Note: ensure the selected rate does not have existing security.Open an existing rate, and select rates security | Expected: Invoke security checkbox is unchecked Grid is empty and greyed User / group search control is disabled || Step 2: Go back to rate card, and save mass rates. | Expected: Multiple rates are saved in TBM_RATE_FEE, all have security_ID = 0 || Step 3: Mass edit - no existing security - simple security - Step 1 Open the same mass edit rates again, and select rates security | Expected: Invoke security checkbox is unchecked Grid is empty and greyed User / group search control is disabled || Step 4: Check the Invoke security checkbox Add TTQA2 with view rights to the grid | Expected: Grid is empty and white Background : Fully secured User / group search control is enabled As TTQA2 is added to the grid, background splash disappears || Step 5: Go back to rate card and save rates | Expected: Check mass edit rates saved to database: select * from TBM_RATE_FEE order by LAST_MODIFIED descCheck that security_ID is not 0 Check security_ID match the new security plan: select * from CMS_SECURE_PLAN order by LAST_MODIFIED descAnd there is a new row with the new security_ID in CMS_SECURE_ROWS: select * from CMS_SECURE_ROW order by LAST_MODIFIED descTTQA2 empl_no : 100130"
+75135,Multiple rates security on rate creation,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Security,2012-07-13T02:10:39.02Z,"Rate save supports multiple security plans and rows created on mass rate creation e.g. mass duplicate / edit
+ 
+Single rate / multiple security save
+ 
+Multiple rate / multiple security save
+ 
+Multiple part TBD",
+75136,New Rate no security,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Security,2012-07-13T02:10:39.147Z,,"Step 1: Open rate card of an existing rates, then select security button. | Expected: Invoke security checkbox is unchecked Grid is empty and greyed User / group search control is disabled || Step 2: Check the Invoke security checkbox | Expected: User / group search control is enabled Grid is empty and background is now white. Splash screen appears : ""Fully Secured"" || Step 3: New rate simple security Open an existing rate, and select rates security | Expected: Invoke security checkbox is unchecked Grid is empty and greyed User / group search control is disabled || Step 4: User goes back to Rate card Save rates | Expected: Rate is saved in TBM_RATE_FEE: select * from TBM_RATE_FEE order by LAST_MODIFIED descSecurity_ID = 0 because no security was invoked || Step 5: Select TTQA2 from the control | Expected: TTQA is added to the grid, splash screen disappears || Step 6: Go back to rate card, and save rates | Expected: Rates saved to database: select * from TBM_RATE_FEE order by LAST_MODIFIED desc Check that security_ID is not 0 Check security_ID match the new security plan: select * from CMS_SECURE_PLAN order by LAST_MODIFIED descAnd there is a new row with the new security_ID in CMS_SECURE_ROWS: select * from CMS_SECURE_ROW order by LAST_MODIFIED desc || Step 7: Open existing rate, and go to rates security Remove TTQA2 from grid, and go back to rate card | Expected: Invoke security checkbox is uncheckedGrid is empty and greyedUser / group search control is disabledScreen displays ' Fully secured' (SP2 - Once remove, splash screen returns, invoke security remains checked, grid is white and user/group search control is enabled) || Step 8: Go back to the Rate card and save rates | Expected: Rate is saved in TBM_RATE_FEE: select * from TBM_RATE_FEE order by LAST_MODIFIED descSecurity_ID is not 0, because fully secured policy is in place CMS_SECURE_ROW entry has been deleted for TTQA2 (empl_no : 100130) || Step 9: Open existing rate, and go to rates security | Expected: Invoke security checkbox is uncheckedGrid is empty and greyedUser / group search control is EnabledScreen displays ' Fully secured' (SP2 - splash screen ""fully secured"" displayed, invoke security remains checked, grid is white and user/group search control is enabled) || Step 10: Uncheck the Invoke Security check box | Expected: Grid is empty and greyed User / group search control is disabled || Step 11: Go back to rate card view, and save rates | Expected: Rate has been saved to database (last_modified), but SECURITY_ID is now 0. CMS_SECURE_PLAN entries still exist (not deleted) CMS_SECURE_ROW is empty from last test case"
+75137,New rate simple security,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Security,2012-07-13T02:10:39.273Z,,
+75138,Rates security - replace and inherit,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Security,2012-07-13T02:10:39.4Z,,
+75139,Remove all security - overrides existing policies,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Security,2012-07-13T02:10:39.527Z,,
+75140,Security plans and secured rows saved,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Security,2012-07-13T02:10:39.657Z,"Check security plans have been saved in the same format
+ 
+Also check the secured rows have been saved properly - same format as rows secured through CMS
+ 
+Finally also check that TBM_RATE_FEE has been updated (security_ID column linked to security_ID in CMS_SECURE_PLAN)",
+75141,System supervisor supercedes security,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Security,2012-07-13T02:10:39.787Z,,
+75142,Add new rate base test,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Level rates,2012-07-13T02:10:39.91Z,,
+75143,Mass Duplicate Rates,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Level rates,2012-07-13T02:10:40.04Z,"Mass edit right-click options will only appear when more than one row is selected.
+ 
+This functionality essentially copies the source rows, but allows mass edit across this 'add mass new rates' process.","Step 1: Search for rates using 'All' office settingHighlight the top 4 rates and right click on the group.Select Duplicate from ribbon | Expected: Apart from Office and Department, which are All (all), all other fields are set as 'Mixed' || Step 2: Exit the mass duplicate dialogue.Scroll down to the Rank rates, and select the top 3 CAD rank rates (rows 1, 3 & 4)Click Duplicate once they are selected | Expected: Rank: Associate (2)Source:  MatterOffice : All(all)Department : All(all)Rate level: Standard(1)All other fields are 'Mixed' || Step 3: Search for rates using 'All' office settingHighlight the top 4 rates and right click on the group.Select Mass duplicate (4) | Expected: Apart from Office and Department, which are All (all), all other fields are set as 'Mixed' || Step 4: Exit the mass duplicate dialogue.Scroll down to the Rank rates, and select the top 3 CAD rank rates (rows 1, 3 & 4)Right-click on the highlighted group | Expected: Rank: Associate (2)Source:  MatterOffice : All(all)Department : All(all)Rate level: Standard(1)All other fields are 'Mixed' || Step 5: Search for rates using 'All' office settingHighlight the top 4 rates and right click on the group.Select Mass duplicate (4) | Expected: Apart from Office and Department, which are All (all), all other fields are set as 'Mixed' || Step 6: Select the Live Preview mode | Expected: All rows have a validation error because without any change, the existing duplicated rows are exactly the same as the source rows || Step 7: Return to Rate card view, and then set the office to 'SI office'Select Live Preview mode again | Expected: The validation errors have now disappeared since the new rows are different to the source rows || Step 8: Reset the office field to its original set of values and set the rate to $1Check the Live Preview | Expected: Office has been set to All(all)Rates have been set to $1There are now validation errors because the factors that determine row uniqueness do not differ to the source rowUnique row factors are: Timekeeper, Office, Department, Currency, Rate Level, and Start Date"
+75144,Mass Duplicate using right-click action,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Level rates,2012-07-13T02:10:40.17Z,"Mass edit right-click options will only appear when more than one row is selected.
+ 
+This functionality essentially copies the source rows, but allows mass edit across this 'add mass new rates' process.",
+75145,Mass rate duplicate live preview,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Level rates,2012-07-13T02:10:40.303Z,"Live preview kicks off validation on the mass rate duplication, and displays validation errors beside rows which will cause duplication against existing rates",
+75146,Variable rate level - End to end test,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Level rates,2012-07-13T02:10:40.427Z,"Following the Rates Hierarchy and Hierarchy is more significant than date logic
+if a variabel rate level is found it will override the rate level held on matter",
+75147,Add Client rank rate,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Client,2012-07-13T02:10:40.557Z,,
+75148,Add Client timekeeper rate,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Client,2012-07-13T02:10:40.683Z,,
+75149,Client advanced search,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Client,2012-07-13T02:10:40.81Z,,
+75150,Client Info Card,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Client,2012-07-13T02:10:40.937Z,,
+75151,Client rate set used,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Client,2012-07-13T02:10:41.06Z,,
+75152,Client Rate sets grid base test,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Client,2012-07-13T02:10:41.183Z,,
+75153,Consolidated view in Client Rates,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Client,2012-07-13T02:10:41.31Z,Basic check that consolidated view aggregates the # of rates belonging to the client / matter,
+75154,Delete client rates,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Client,2012-07-13T02:10:41.437Z,,
+75155,Consolidated view,Closed,ExpertSuite\Billing\Rates\Application\Consolidated View,2012-07-13T02:10:41.563Z,Basic check that consolidated view aggregates the # of rates belonging to the client / matter,
+75156,Matter Info Card,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Matter,2012-07-13T02:10:41.69Z,,
+75157,Matter Rate sets grid base test,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Matter,2012-07-13T02:10:41.813Z,,
+75158,Action Code Rate Maintenance,Design,ExpertSuite\Billing\Rates\Rate Maintenance\Action Codes,2012-07-13T02:10:41.94Z,"Wiki: https://aderant.sharepoint.com/RD/ExpertBilling/Tokyo%20Design%20Wiki/Action%20and%20Phase%20Code%20Rates.aspx#216275This needs to be added to the test steps
+ 
+ 
+Pre-req:                                                                        
+                                                                        
+CA      use GBP                                                         
+WILLC   use CAD                                                         
+MAT     use USD                                                         
+                                                                        
+                                        Expect  My local        ITE     Ruby    
+Inquiry         USD             CA      N       N       Y       N       
+                                WILLC   N       Y       Y       Y       
+                                MAT     Y       Y       Y       Y       
+                                                                        
+                USD - >CAD              CA      N       Y       Y       N       
+                                WILLC   Y       Y       Y       Y       
+                                MAT     N       N       N       N       
+                                                                        
+                USD - >CAD ->GBP                CA      Y       N       Y       Y       
+                                WILLC   N       Y       Y       Y       
+                                MAT     N       N       N       N       
+                                                                        
+Where Y = Action code value used in inquiry, and N= currency mismatch dialogue displayed.                                                                       
+Expected is sourced from using time rate inquiry in CMS.","Step 1: Open CMS / Appshell, and go to Time accounting -> Time rate inquiry Use 'CA' as the action code.Set currency to USD, and unit rate to 55000Do rate search in CMS:Timekeeper : NZ75 if you have none preferredClient: 10901Matter : 1Action code: SITAX | Expected: Expect all rates to be $325 (or any specific rate set for your timekeeper) || Step 2: Change action code to 'CA' | Expected: Base and ToBill changed to Action code amount - $55,000.Source of rate: Action code. || Step 3: Repeat this process in Rates app - rates calc | Expected: We should have the same result as in CMS rates calc || Step 4: Go to the Action Code grid, click on the currency field of an existing Action Code rate and edit the currency | Expected: Check in TAL_ACTION and see that the currency field has been altered to the new currencySELECT * FROM TAL_ACTION || Step 5: Change the Unit Time field to '2' and Unit Rate to '$4000' via the grid inline | Expected: The grid should be immediately updated as you change the value for each field, and TAL_ACTION should reflect these changes || Step 6: Add a new Action Code rate | Expected: Ensure no duplicates can be added and any new rates are added to the grid and to TAL_ACTION || Step 7: Open the Action Code Rate card | Expected: Same data is shown in the card as was entered and shown in the grid || Step 8: Make an edit to the Action Code Rate in the card and save | Expected: Edits are shown in the grid || Step 9: Check the Action Code grid and ensure the rates and codes are loaded | Expected: Unit Time, Unit Value, and Unit Rate are all loaded as expected. Action Codes are sorted by alphabetic sequence by default. || Step 10: Customize the Action Code grid by dragging around columns and changing the column sorts to change the view | Expected: Able to change the look of the grid per user"
+75159,Action code grid base test,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Action Codes,2012-07-13T02:10:42.063Z,,
+75160,Action code maintenance,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Action Codes,2012-07-13T02:10:42.19Z,"Action codes can be modified, and changes saved to TAL_ACTION table.","Step 1: Go to action code grid, and click on the currency field of an existing action code rate. E.g. Change the 'Mortgage application' and change its currency to 'CAD' | Expected: Check in TAL_ACTION and see that the currency field has been altered to 'CAD'select * from TAL_ACTION || Step 2: Change the unit time field to '2' and unit rate to '$4000' via the grid inline | Expected: The grid should be immediately updated as you change value for each field, and SQL should reflect these changes in the tableselect * from TAL_ACTION || Step 3: Add a new Action Code rate | Expected: Ensure no duplicates can be added, and any new rates are added to the grid and to TAL_ACTION"
+75161,Action codes grids and search filters,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Action Codes,2012-07-13T02:10:42.317Z,,
+75162,Action codes loaded,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Action Codes,2012-07-13T02:10:42.443Z,,
+75163,Action codes rate card,Closed,ExpertSuite\Billing\Rates\Rate Maintenance\Action Codes,2012-07-13T02:10:42.57Z,,
+75164,Help link check,Closed,ExpertSuite\Billing\Rates\Documentation,2012-07-13T02:10:42.693Z,,
+75165,Test User Documentation,Closed,ExpertSuite\Billing\Rates\Documentation,2012-07-13T02:10:42.813Z,,
+75166,Active timekeepers in advanced search,Closed,ExpertSuite\Billing\Rates\Application\Searching,2012-07-13T02:10:42.94Z,,
+75167,Advanced Search add Customization columns,Closed,ExpertSuite\Billing\Rates\Application\Searching,2012-07-13T02:10:43.06Z,,
+75168,Advanced Search allows multiple selection,Closed,ExpertSuite\Billing\Rates\Application\Searching,2012-07-13T02:10:43.187Z,,
+75169,Advanced Timekeeper Search based on one criteria,Closed,ExpertSuite\Billing\Rates\Application\Searching,2012-07-13T02:10:43.313Z,Single criteria search,
+75170,Advanced Timekeeper Search,Closed,ExpertSuite\Billing\Rates\Application\Searching,2012-07-13T02:10:43.44Z,"Tables the attributes are drawn from:
+HBM_PERSNL:
+- Timekeeper
+- Office
+- Department
+- Anniversary
+- Currency
+ 
+TBM_PERSNL:
+- Rank
+ 
+ 
+Step 3 Corresponding SQL: select * from HBM_PERSNL where EMPL_UNO in(select EMPL_UNO from TBM_PERSNL where RANK_CODE = '1')and CURRENCY_CODE = 'EUR'
+Step 4 Corresponding SQL: select * from HBM_PERSNL where EMPL_UNO in (select EMPL_UNO from TBM_RATE_FEE where CURRENCY_CODE = 'USD')and DEPT = 'COR' and CURRENCY_CODE = 'USD'","Step 1: Begin by adding a Timekeeper Rate, and click the advanced hyperlink beside the Timekeeper search box | Expected: The timekeeper selection dialogue is displayed || Step 2: Select 'London' as Office search criteria, and search | Expected: Timekeeper: Expenses, CiO C., Rank 3, Office London, Department Administration, Anniversary 0, Currency GBPTimekeeper: Expenses, CiO D, Rank 7, Office London, Department Administration, Anniversary 0, Currency GBP || Step 3: Open advanced timekeeper search dialogue box Set Rank = PartnerSet currency = Euro | Expected: Timekeeper : Schmidt, WilliamRank : 1 / PartnerOffice : FrankfurtDepartment : AdministrationAnniversary:  0Currency: Euro || Step 4: Set department = CorporateCurrency = 'USD' | Expected: Department = Corporate and Currency = USD as expectedTimekeeper: Edwards, Pat, Rank: 2 / Associate, Office: Tallahassee, Anniversary: 0Timekeeper: Fountain, Bill, Rank: 2 / Associate, Office: Buffalo, Anniversary: 0Timekeeper: Jance, Kathy, Rank: 1 / Partner, Office: Buffalo, Anniversary: 0Timekeeper: Krause, Kaitlyn, Rank: 1 / Partner, Office: Buffalo, Anniversary: 0"
+75171,Effective rates only in Advanced Search,Design,ExpertSuite\Billing\Rates\Application\Searching,2012-07-13T02:10:43.6Z,"Effective rates limits display to the latest copy of rate at each rate level
+ 
+So given today's date is 6th october:
+ 
+Timekeeper rates, USD currency
+5th oct, rate level 1
+6th oct, rate level 1
+7th oct, rate level 1
+ 
+Only 6th Oct level rate would be displayed, as future rate hasn't kicked in, and the 5th oct rate has been superceded by the 6th oct rate.
+ 
+Each rate level + date + currency is a unique combination and will affect the search result as above (in terms of superceding previous rates or hiding future rates)",
+75172,Effective rates search returns no future rates,Ready,ExpertSuite\Billing\Rates\Application\Searching,2012-07-13T02:10:43.723Z,,"Step 1: Open rates app, and go to ribbon -> advanced search button 
+
+Ensure effective rates are turned on || Step 2: Add a rate with start date two days earlier from today, under the PESO currency
+
+Search for rates with PESO currency | Expected: The rate you just added is retrieved as the only result || Step 3: Duplicate the rate and change start date one day before today
+
+Search for rates | Expected: The new rate is now displayed, and older rate is hidden || Step 4: Duplicate the rate and change start date to tomorrow | Expected: Only the latest effective rate up till today is retrieved i.e. the rate you created during the last step. The first rate and the rate you've just added to start tomorrow is hidden from view. || Step 5: Turn effective rates off, and search again | Expected: All 3 rates that were created prior are returned"
+75173,If Rates services cannot be reached search grid displays alert,Design,ExpertSuite\Billing\Rates\Application\Searching,2012-07-13T02:10:43.85Z,,
+75174,Rate search - Find,Design,ExpertSuite\Billing\Rates\Application\Searching,2012-07-13T02:10:43.973Z,,
+75175,Rate search - Search,Closed,ExpertSuite\Billing\Rates\Application\Searching,2012-07-13T02:10:44.1Z,,
+75176,Searching for clients in  Advanced Search,Design,ExpertSuite\Billing\Rates\Application\Searching,2012-07-13T02:10:44.227Z,,"Step 1: In Expert Rates, go to the Client Rates search, and click on ""Advanced"" under the client search field | Expected: Page should look like 'Client Advanced Search' attachmentWith default search criteria - Client- Resp. Timekeeper- Office- Department || Step 2: Check all buttons in the top navigation strip | Expected: - Use Selected (should only be usable when a/some client(s) is/are selected) - Cancel - Advanced Search (should reflect the settings in the Admin app, the defaults should be ticked) sometimes users config needs to be deleted and cache cleared for the defaults to be showing || Step 3: Columns can be dragged around to change the order right clicking on the column header | Expected: - Columns (the defualts are checked and correspond to the settings in the admin app under Grid> Client Selection) - Proportional Column Widths (default is checked) - uncheck let's you alter the column width Collapse button (the button with 2 up arrow) will collapse the search criteria area when clicked || Step 4: Right-clicking on the grid | Expected: - Select All - Reverse select these will only be avaiable if the returned field allows multi-select"
+75177,Searching for Matters in Advanced Search,Design,ExpertSuite\Billing\Rates\Application\Searching,2012-07-13T02:10:44.353Z,,"Step 1: In Expert Rates, go to the Matter Rates search and select ""Advanced"" under the matter search field | Expected: Page should look like 'Matter Advanced Search' attachment With default search criteria - Client - Matter - Office - Department || Step 2: Check all buttons in the top navigation strip | Expected: - Use Selected (should only be usable when a/some matter(s) is/are selected)- Cancel- Advanced Search (should reflect the settings in the Admin app, the defaults should be ticked)sometimes users config needs to be deleted and cache cleared for the defaults to be showing || Step 3: Columns can be dragged around to change the order right clicking on the column header | Expected: - Columns (the defualts are checked and correspond to the settings in the admin app under Grid> Client Selection) - Proportional Column Widths (default is checked) - Uncheck let's you alter the column width || Step 4: Collapse button (the button with 2 up arrow) will collapse the search criteria area when clicked || Step 5: Right-clicking on the grid | Expected: - Select All - Reverse select these will only be avaiable if the returned field allows multi-select"
+75178,Searching for Timekeepers in Advanced Search,Closed,ExpertSuite\Billing\Rates\Application\Searching,2012-07-13T02:10:44.477Z,,"Step 1: In Expert Rates, click on ""ADD TIMEKEEPER"" from the grid. From next to the Timekeeper search field, select ""Advanced"" | Expected: Page should look like 'Timekeeper Advanced Search' attachmentWith default search criteria - Timekeeper- Rank- Office- Department || Step 2: Check all buttons in the top navigation strip | Expected: - Use Selected (should only be usable when a/some timekeeper(s) is/are selected) - Cancel - Advanced Search (should reflect the settings in the Admin app, the defaults should be ticked) sometimes users config needs to be deleted and cache cleared for the defaults to be showing || Step 3: Columns can be dragged around to change the order right clicking on the column header | Expected: - Columns (the defualts are checked and correspond to the settings in the admin app under Grid> Client Selection) - Proportional Column Widths (default is checked) - Uncheck let's you alter the column width || Step 4: Collapse button (the button with 2 up arrow) will collapse the search criteria area when clicked || Step 5: Right-clicking on the grid | Expected: - Select All - Reverse select these will only be avaiable if the returned field allows multi-select"
+75179,Timekeeper deep search returns correct amount,Design,ExpertSuite\Billing\Rates\Application\Searching,2012-07-13T02:10:44.603Z,"Should match : 
+ 
+select * from HBM_PERSNL where NAME_UNO >0 and TERMINATE_DATE is null",
+75180,Turning effective rate search  on or off,Design,ExpertSuite\Billing\Rates\Application\Searching,2012-07-13T02:10:44.73Z,Turning effective rates on or off should return expected results;,
+75181,Invalid timekeepers,Closed,ExpertSuite\Billing\Rates\Application\Retire Timekeeper,2012-07-13T02:10:44.857Z,"Check that when a selected timekeeper does not have a termination date, the alert ""This timekeeper has not been terminated"" is displayed",
+75182,Rates greater than termination date is not retired,Closed,ExpertSuite\Billing\Rates\Application\Retire Timekeeper,2012-07-13T02:10:44.997Z,"If the retired timekeeper has rates with start dates greater than their termination date, it will not be retired, and retiring the timekeeper's rates should not be touching these rates",
+75183,Retired timekeepers,Closed,ExpertSuite\Billing\Rates\Application\Retire Timekeeper,2012-07-13T02:10:45.12Z,,"Step 1: Note: Setup a Terminated Timekeeper to be able to test this properly.1. Open CMS and select Employment Management - Employee Details.2. In Employee Details, choose any employee and bring up their details3. In the Terminated box, add a termination date (such as yesterday's date) and click OK4. Open Rates and add a couple of rates for the timekeeper that you have chosen in Step 2. These can be anything you like as long as the dates are before the termination date and at least one behind. || Step 2: Click the Retire TimeKeeper Button on the ribbon. This will open up the Retire TimeKeeper dialogue box. In the Select Timekeeper box type in the terminated timekeeper (use the one you have just setup above) Tab across so the timekeepers details populate all the fields. | Expected: Note: When a selected, terminated timekeeper does not have any rates, the alert ""There are no rates to retire"" is displayed When selected a not terminated timekeeper, the alert ""This timekeeper has not been terminated"" is displayed || Step 3: Retired timekeepers with rates: The retire button is enabled || Step 4: After pushing the button you get a popup: ""You have chosen to retire ALL unexpired rates for this timekeeper. However there are also rates that we can NOT retire (2 Client, 3 Matter, 4 Rate Set, 5 Level), because the rate Start Date was greater than the Termination Date. Please use the appropriate navigation button to adjust the rates manually."" || Step 5: Retire rates - # rates will be retired Cancel - Cancel without retiring rates | Expected: We expect the above counts of rates being retired / not retired / categories to be correct."
+75184,Turning Consolidated View On and off,Design,ExpertSuite\Billing\Rates\Application\Consolidated View,2012-07-13T02:10:45.283Z,,
+75185,Edit the Rates report list,Closed,ExpertSuite\Billing\Rates\Application\Reports,2012-07-13T02:10:45.417Z,,
+75186,Launch the rates report,Closed,ExpertSuite\Billing\Rates\Application\Reports,2012-07-13T02:10:45.55Z,,
+75187,Changes in Time accounting params affect calculator,Closed,ExpertSuite\Billing\Rates\Application\Rate Calculator,2012-07-13T02:10:45.673Z,,
+75188,Rates hierarchy test,Design,ExpertSuite\Billing\Rates\Application\Rate Calculator,2012-07-13T02:10:45.797Z,"Begin test with a generic search with your user on Arden industries (should default to rank).
+ 
+Then start inserting rates from the bottom of the hierarchy e.g. global timekeeper rate and work your way up to the most specific i.e. matter timekeeper rate",
+75189,Client rateset rates,Closed,ExpertSuite\Billing\Rates\CMS Integration,2012-07-13T02:10:45.92Z,,
+75190,client timekeeper and rank,Closed,ExpertSuite\Billing\Rates\CMS Integration,2012-07-13T02:10:46.05Z,,"Step 1: Note: For the scenario, use Arden (10901) or a client you use normally for testing.Go to Client Management -> Fee Rates, and start entering a timekeeper rateThen enter a rank Matter office or rank timekeeper office rate.Open rates app, and go to the client tab -> and choose Arden or another client you've entered the new rates under. | Expected: Once the client has been selected, the additional rates should now be retrieved in the main search grid. For rank rates, clicking into the rank rate detail card should tell you whether it is Matter office or timekeeper office - they should be displayed as expected."
+75191,Global rate set rates,Design,ExpertSuite\Billing\Rates\CMS Integration,2012-07-13T02:10:46.177Z,,
+75192,Global timekeeper and rank rates,Design,ExpertSuite\Billing\Rates\CMS Integration,2012-07-13T02:10:46.297Z,,"Step 1: Create from employee rates for TTQA2, and also rank rates for rank 7.Go to CMS: Employee Management -> rates for TTQA2 rates and search for TTQA2 employee ratesThen go to Hub Setup-> Time and Billing Setup - >Employee rank codesand search for rank 7 rank rates. | Expected: The newly created TTQA2 timekeeper, and rank 7 rates should all be searchable, and contain the values as expected (from what you entered). || Step 2: Go to: Employee Management -> Rates Enter 'JKB' as the employee and add several rates Open Rates app and go to Firm -> Level rates, and search for timekeeper 'JKB' | Expected: The rate(s) you've added under JKB should be retrieved, with the fields you've entered in data being as expected"
+75193,Matter rate set rates,Closed,ExpertSuite\Billing\Rates\CMS Integration,2012-07-13T02:10:46.42Z,,
+75194,Matter timekeeper and rank rates,Closed,ExpertSuite\Billing\Rates\CMS Integration,2012-07-13T02:10:46.54Z,,
+75195,Old rates are OK in new apps,Design,ExpertSuite\Billing\Rates\CMS Integration,2012-07-13T02:10:46.667Z,Sue's doc is attached to this test case...,
+75196,Test old rates edit or duplicate,Design,ExpertSuite\Billing\Rates\CMS Integration,2012-07-13T02:10:46.81Z,"Tests briefly each type of rates created in CMS is accessible in rates app, and data pulled back as expected",
+75197,Adjust screen res and font size,Closed,ExpertSuite\Billing\Rates\Deployment and Environment,2012-07-13T02:10:46.94Z,,
+75198,Import Export with other Op systems,Closed,ExpertSuite\Billing\Rates\Deployment and Environment,2012-07-13T02:10:47.067Z,,
+75199,Local deployment (including all roles),Closed,ExpertSuite\Billing\Rates\Deployment and Environment,2012-07-13T02:10:47.2Z,Test that new binaries can be successfully deployed.,
+75200,Advanced Timekeeper selection grid,Design,ExpertSuite\Billing\Rates\Configuration\Grid,2012-07-13T02:10:47.33Z,"Add, edit, remove available fields
+ 
+The Employee node has numerous data sources that we can add as available fields",
+75201,Customize all other Rates Grids,Closed,ExpertSuite\Billing\Rates\Configuration\Grid,2012-07-13T02:10:47.457Z,,
+75202,Rates > Customization Scenarios,Ready,ExpertSuite\Billing\Rates\Configuration\Grid,2012-07-13T02:10:47.583Z,"End to end customization...
+ 
+From:
+ 
+1. Add custom column to HBM_CLIENT table e.g. _hobby, string, 30
+2. Do domain wizard and build / deploy all etc.
+3. Add data to custom column, and then change around client office / department and make sure searching returns expected clients
+4. Perform search and confirm actual search results","Step 1: Add custom columns to:- HBM_CLIENT, e.g. _HOBBY, String, 30- HBM_PERSNL, e.g. _HOBBY, String, 30- HBM_MATTER, e.g. _PRIORITY, String, 30 || Step 2: Add data to the custom columns for various clients, matters, and employees || Step 3: In Expert Administration, add the custom columns to the Advanced Search grids (Client, Matter, and Employee), and add to Export/Import column list || Step 4: Customize all other Rates grids (e.g. Level Rates, Matter Rates, etc.) || Step 5: Perform searches in all grids, including (but not limited to):- Client Advanced Search Grid- Employee Advanced Search Grid- Matter Advanced Search Grid | Expected: Confirm actual search results are what you expected || Step 6: Perform a Rates Export | Expected: Custom field is added to the Excel file || Step 7: Perform a Rates Import, using the above Excel file (with edits to custom field/s) | Expected: Custom field/s are imported as expected || Step 8: Selecting an available column will enable the 'Column default' placement dialogue, where the position can be adjusted vertically.Available fields:- Change labels- Change 'available' and other checkboxes as a testColumn defaults :- Adding / deleting columns- Changing up/down orderStack defaults:- Same as columnd defaults"
+75203,Customize Employee search grid,Closed,ExpertSuite\Billing\Rates\Configuration\Grid,2012-07-13T02:10:47.713Z,"End to end customization...
+ 
+From:",
+75204,Customize Matter search grid,Closed,ExpertSuite\Billing\Rates\Configuration\Grid,2012-07-13T02:10:47.843Z,"End to end customization...
+ 
+From:",
+75205,Edit existing fields,Design,ExpertSuite\Billing\Rates\Configuration\Grid,2012-07-13T02:10:47.97Z,,
+75206,Grid - adjust custom column default placement,Closed,ExpertSuite\Billing\Rates\Configuration\Grid,2012-07-13T02:10:48.097Z,"Selecting an available column will enable the 'Column default' placement dialogue, where the position can be adjusted vertically.
+ 
+Three areas to test:
+Available fields:
+ - Change labels
+ - Change 'available' and other checkboxes as a test
+Column defaults :
+ - Adding /  deleting columns
+ - Changing up/down order
+Stack defaults:
+ - Same as columnd defaults",
+75207,Add Reports in Admin App,Closed,ExpertSuite\Billing\Rates\Configuration\Reports,2012-07-13T02:10:48.22Z,,
+75208,Navigation pane,Design,ExpertSuite\Billing\Rates\Configuration\Navigation Pane,2012-07-13T02:10:48.35Z,"Controls visibility for nodes in the Rates app
+ 
+Checking / unchecking 'Show' checkbox should toggle visibility of the Nodes in Firm tab.
+ 
+Firm tab nodes:
+Action code
+Matter Rates
+Rate Sets
+Rate level Rates",
+75209,Advanced Timekeeper selection search criteria,Design,ExpertSuite\Billing\Rates\Configuration\Search,2012-07-13T02:10:48.477Z,"Add, edit, remove available fields
+ 
+The Employee node has numerous data sources that we can add as available fields",
+75210,Restoring the Default Search criteria,Closed,ExpertSuite\Billing\Rates\Configuration\Search,2012-07-13T02:10:48.603Z,"Need to make sure the search criteria for each page is at it's default state 
+check against the admin app
+if not
+please go to Configure manager > Preference > Available Properties > 
+ 
+Files with the name ending in SearchInstances stores the config files with the firm as default
+Delete the user config in order to restore default",
+75211,Export wizard step 3,Closed,ExpertSuite\Billing\Rates\Export,2012-07-13T02:10:48.73Z,,
+75212,Checking for Duplicate with existing rates,Design,ExpertSuite\Billing\Rates\Import,2012-07-13T02:10:48.857Z,,
+75213,Export and import with customization,Design,ExpertSuite\Billing\Rates\Import,2012-07-13T02:10:48.983Z,,
+75214,Import Export column mappings,Design,ExpertSuite\Billing\Rates\Import,2012-07-13T02:10:49.11Z,"Test that:
+ 
+ 
+ 
+ 
+ 
+ 
+Changing the tooltip",
+75215,Import for non-existence,Design,ExpertSuite\Billing\Rates\Import,2012-07-13T02:10:49.237Z,,
+75216,Import Multi Rate with edit,Closed,ExpertSuite\Billing\Rates\Import,2012-07-13T02:10:49.373Z,,
+75217,Import Rates Step 2,Design,ExpertSuite\Billing\Rates\Import,2012-07-13T02:10:49.5Z,"When the user types an existing Id, it will clear the description field and select the 'existing rate level' and make the id and description field readonly. (ie. It will treat like the user has selected the 'existing rate level'.
+ 
+When there are more than one different rate level has been imported and in step 2, if the user make all the rate level Ids to the same (not existing) Id, it will use the top description and copy into all the description fields. And after that, when the user changes the description in ANY of the fields, it will update all the description fields for all the same rate levels.
+ 
+Also, created an extra column for the warning sign for max/min ID/Code.",
+75218,Import simple rates,Design,ExpertSuite\Billing\Rates\Import,2012-07-13T02:10:49.63Z,,Step 1: Import several firm rates (make sure you cover the following scenarios)- Timekeeper Rates (existing timekeeper rates)- Rank Rates (existing rank rates)- Rate Set Rates (existing rate set rates - both timekeeper and rank rates) || Step 2: Import several client rates (make sure you cover the following scenarios)- Timekeeper Rates (existing client timekeeper rates)- Rank Rates (existing client rank rates)- Rate Set Rates (existing client rate set rates - both timekeeper and rank rates) || Step 3: Import several matter rates (make sure you cover the following scenarios)- Timekeeper Rates (existing matter timekeeper rates)- Rank Rates (existing matter rank rates)- Rate Set Rates (existing matter rate set rates - both timekeeper and rank rates)
+75219,Import Single Rate with Edit,Closed,ExpertSuite\Billing\Rates\Import,2012-07-13T02:10:49.753Z,,"Step 1: Create a level rank rate and export this rate | Expected: spread sheet generated || Step 2: Import the rate you just exported with no changes to the spreadsheet | Expected: After validating, we should see UI showing 1 rate with information, telling us 'this rate already exist and will be updated"" || Step 3: Double click on the rate record to edit the currency, choose a new Currency Save the changes | Expected: the info icon on the far right column should disappear and the Currency cell updated || Step 4: Click on import and finish the wizard | Expected: Should import sucessfully || Step 5: Search for your new imported rate | Expected: Import should have created a new rate and currency should be updated"
+75220,Import with duplicates,Design,ExpertSuite\Billing\Rates\Import,2012-07-13T02:10:49.883Z,,
+75221,new rate levels and rate sets,Closed,ExpertSuite\Billing\Rates\Import,2012-07-13T02:10:50.013Z,,
+75222,Simple Export and Import,Design,ExpertSuite\Billing\Rates\Import,2012-07-13T02:10:50.137Z,,"Step 1: Ensure the following rates exist: Global rates (Rank, Timekeeper) Rate set - rank ( Rate, Markup, Rate band, Rate level override)Rate set - timekeeper (Rate, Markup, Rate band, Rate level override)Client rate - rank (Rate, Markup, Rate band)Client rate - timekeeper (Rate, Markup, Rate band)Matter rate - rank (Rate, Markup, Rate band) Matter rate - timekeeper (Rate, Markup, Rate band). These are all the possible rate types. The simple export / import tests that these are exported, and then identified correctly when imported. Follow the design steps once these are created || Step 2: Ensure that the prerequisite rates have been created || Step 3: Export the different rates: Global rates into globalExport.xlsx All others into ClientMatterRateSetExport.xlsx | Expected: Check that the exported rates, match the rates in the system, and that the columns have been filled in correctly e.g. where All Office / department is 'Y', the column in excel has been filled with 'All'. || Step 4: Start the import wizard and import these rates We are checking for: 1. Correct identification for the type of rates that is being imported. Markup / level override can be confused here. 2. The individual fields of each rate from the excel sheet has been imported into the Rates app - rate card. 3. The error messages are legitimate | Expected: The rates which exist on the excel sheet have been imported, and identified correctly what additional information / steps is required of the user to prep the rates for import. || Step 5: Imported steps, after adjustment e.g. effective date, has been saved correctly. So check that: | Expected: 1. Same # of rates imported, same # of rates retrieved with a later query 2. Rate types and values match changes made at time of import. || Step 6: Final check is to export the newly imported rates, then compare against the originally exported rates (sans changed made during import), everything else should be the same."
+76421,Processing Large Prebills,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Workflow General,2012-08-15T04:19:01.38Z,,Step 1: Create a prebill with 100 or more time entries || Step 2: Launch the prebill workflow and open the markup task | Expected: The app does not time out when opening the task || Step 3: Complete the markup task | Expected: The app does not time out when completing the task
+76451,Read only Security  - New Security policy,Closed,ExpertSuite\Billing\Rates\Security,2012-08-15T23:37:05.787Z,"Resource Rights
+Create a new resource right called “AllowRateEdits”: If users DO NOT have this right:
+• All Pages:
+o Disable the New and Duplicate Buttons on the toolbar for all Pages
+o Disable the Manage Rate Levels Button on the toolbar.
+o Disable the inline Add options on the top of the grids for all pages
+o Disable the right click options to edit, duplicate, duplicate to new…, add new.. 
+o On right click change the edit to View Rate Card and allow them to see a read only version of the rates.
+• Rate Sets
+o On rates sets, disable Create new/Manage/Duplicate.
+o If they go to attach matters/clients, disable the option to Attach.
+• Action Codes
+o For Action Code rates – disable the option to edit/Clear Unit Amounts and Clear Rate
+• Client & Matter
+o When user Launches Variable Rate Levels, disable the new button, and the new, edit and delete on the right click.
+o For Rate Sets disable the ability to set and change rate set, as well as the other options mentioned in rate sets.
+ 
+Security Policies
+• Update the existing Rates User policy to have the new Allow Rate Edits to be checked.
+• Create a new policy call “Rates Read Only User” (description: Allows a user to view rates without  enabling the ability to edit or create rates.)
+o This just needs the right to Expert Rates Application.",
+76470,Read only rates - individual rate security,Ready,ExpertSuite\Billing\Rates\Rate Maintenance\Rate Security,2012-08-16T04:28:19.97Z,"When user is P1, Read only needs to check this like itdoes for deny..
+ 
+Deny wins - ok
+ 
+oN sAVE - THE SERVICE VALIDATION IS NOT LETTING p1 USERS SAVE - SHOULD DO AS THEY ARE GOD...
+ 
+ 
+The Plan
+---------
+IF NO SECURTIY - ALL USERS HAVE GRANT ALL ACCESS
+iF SECURTIY EXISITS
+ - IF YOU OR ANY GROUP YOU ARE IN HAS deny - THEN ACCESS IS DENIED
+ - IG YOU OR ANY GROUP YOU ARE IN HAS grant all THE GRANT ALL
+ - IF YOU OR ANY GROUP YOU ARE IN HAS READ ONLY THEN READ ONLY
+else DENY
+ 
+pRIVILEDGE LEVEL 1 OVERRIDES ALL OF THE ABOVE - AnD EQUATES TO grant all",
+78216,Export Rates Count - effective and non effective rates,Design,ExpertSuite\Billing\Rates\Export,2012-10-05T02:01:47.333Z,,
+78282,(Smoke Test) Expert Admin App,Closed,ExpertSuite\Billing\Rates\Configuration,2012-10-08T21:31:56.527Z,Tests the general behavior of the Expert Administration application.,"Step 1: Open Expert Admin App from EA or ExpertShare folder | Expected: App should open without errors || Step 2: Click through the Nodes (each app plugins) | Expected: all the pages and nodes should only take a seconds to open || Step 3: Package is required before saving any changes (excluding some Time and Expenses pages) || Step 4: Make changes in one of the plugin and save | Expected: Open the corresponding app to see the changes carried through, the changes should carry through with out any errors"
+78283,Mass Rates Searching,Design,ExpertSuite\Billing\Rates\Application\Searching,2012-10-08T22:09:11.537Z,Dialogue box can be turned on and off in the Admin app (not 8003 release),
+79070,Prebill - Approval - 00 Pre-req set up - Enable and Disable Prebill Statusrue,Design,ExpertSuite\Billing\Billing App\Paperless PreBill\Approval Workflow\Set Up,2012-11-07T01:00:26.02Z,,
+79075,Prebill - Approval - 01b 01 Set approval workflow,Design,ExpertSuite\Billing\Billing App\Paperless PreBill\Approval Workflow\Set Up,2012-11-07T03:21:22.73Z,"When an approvals workflow is kicked off, the workflow definition that is used must be defined on data that is accessible to the relevant  Prebill .(e.g. on the bill's bill group, responsible timekeeper). This test will ensure that an approvals workflow is defined in the ""last resort"" location which is in the Billing Parameters.",
+79233,Maininting Packages in the prebill adminstration application,Design,ExpertSuite\Billing\Billing App\Paperless PreBill\Miscellaneous\Configuration,2012-11-14T03:11:41.407Z,"Ensure new packages can be created and already existing packages can be selected. 
+ 
+Ensure change can only be saved to new or existing packages and not to the default package.
+ 
+Ensure help link opens to the correct help page when clicked.",
+79234,Prebill Configuration of Narrative Editor,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Miscellaneous\Configuration,2012-11-14T03:11:41.58Z,"Note: When testing Narrative Editor, after you change a setting in the admin app, you only need to close Narrative Editor and open it again to see the change is effective. You do not need to close Prebill, clear the cache and start Prebill.
+ 
+Ensure settings for Time Grid are applied firmwide:
+1. Add and Remove Available Fields
+2. Add and Remove Column & Stack Defaults
+3. Move columns up and down for Column & Stack Defaults
+4. Change the Label name
+5. Ensure the following checkboxes execute correctly when selected:
+- Available
+- Available in Stacks
+- Available in Filters
+- Is Fixed
+- Is Readonly
+ 
+Ensure all help links open to the correct help page when clicked.
+ 
+Available Fields 
+ 
+Date
+Timekeeper
+Time Id
+Client Name
+Matter Name
+Narrative
+Reviewed
+ 
+Ensure all changes that are made in the Prebill Application are reflected in the Preview Bill.",
+79235,Prebill Disbursement Grid Configuration Set up,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Miscellaneous\Configuration,2012-11-14T03:11:41.71Z,"Ensure settings for Disbursement Grid are applied firmwide:
+1. Add and Remove Available Fields
+2. Add and Remove Column & Stack Defaults
+3. Move columns up and down for Column & Stack Defaults
+4. Change the Label name
+5. Ensure the following checkboxes execute correctly when selected:
+- Available
+- Available in Stacks
+- Is Readonly
+ 
+**** NOTE// to successfully rearrange columns in Expert Administration and make them show in that order. You need to delete the user configuration and clear the cache.
+ 
+The configuration to delete in Configuration Manager is the whole directory of 
+Preference.Applications.ExpertPaperlessPrebill
+Also, delete the user configuration of Preference.AvailableProperties.DisbursementEntryInstances.ExpertPaperlessPrebill. (Keep the system config values)
+ 
+Also NOTE//  that the user configuration is generated again when you close the Prebill application ****.
+ 
+ 
+The following are the Available Fields:
+Disbusement ID  
+Date
+Actual Disbursement Type
+Actual Timekeeper
+Narrative
+Billed Quantity
+Billed Amount
+Billed Disbursement Type
+Phase Task
+Location
+Reference
+Print On Bill
+Sequence
+Summarize
+Prebill Comment
+Billed Employee
+Base Quantity
+Base Amount
+Standard Amount
+ 
+Ensure all help links open to the correct help page when clicked.
+ 
+Ensure all changes that are made in the Prebill Application are reflected in the Preview Bill.",
+79236,Prebill Disbursement Summaries Configuration set up,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Miscellaneous\Configuration,2012-11-14T03:11:41.86Z,"Ensure settings for Disbursement Summaries are applied firmwide:
+1. Move available columns up and down. 
+2. Show columns
+3. Make columns available
+4. Ensure the label corresponds to the correct column.
+ 
+Ensure all help links open to the correct help page when clicked.
+ 
+The following are the Available Columns:
+Bill Amount
+Base Amount
+Standard Amount
+ 
+Ensure all changes that are made in the Prebill Application are reflected in the Preview Bill.",
+79237,Prebill Disbursement View Configuration Set up,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Miscellaneous\Configuration,2012-11-14T03:11:42.02Z,"Ensure settings for Disbursement View are applied firmwide:
+1. Move columns up and down 
+2. Show Columns 
+ 
+ 
+Ensure all help links open to the correct help page when clicked.
+ 
+The following are the Available Columns:
+  Disbursement Entries
+  Disb Type Summary 
+  Disb Group Summary
+ 
+Ensure all changes that are made in the Prebill Application are reflected in the Preview Bill.",
+79238,Prebill Edit Summary Pane Configuration,Design,ExpertSuite\Billing\Administration\Edit Summary Setup,2012-11-14T03:11:42.163Z,"Ensure settings for Summary Pane are applied firmwide:
+1. Move available columns up and down using arrows. 
+2. Show available columns
+3. Ensure the following checkboxes execute correctly when selected:
+- Fees
+- Disbursements
+ 
+Ensure all help links open to the correct help page when clicked.
+ 
+Note:
+- You can't add further columns or information to the summary pane.
+- 'Show' checkbox is used to configure whether the field is displayed in the Summary pane or not.
+- The label field is read only.
+ 
+Ensure all changes that are made in the Prebill Application are reflected in the Preview Bill.","Step 1: Launch Prebill Admin app  - ExpertShare\PrebillAdministration.exe - and navigate to Billing > Edit Summary Setup > Time | Expected: Prebill Admin app should launch successfully with Time Edit Summary Setup displayed. || Step 2: Alter the sequence of the Fees fields e.g. move Written Up/Down $ to bottom, move Standard to Bill Variance to the top. | Expected: Sequence of Fees fields should be displayed in the admin app as:- Written Up/Down $/%- WIP Available- WIP Deselected- Transferred Entries- Standard to Bill Variance $/%- Base to Bill Variance $/% || Step 3: Deselect the Show checkbox for a Fees field e.g. Base to Bill Variance.(Keep the Available checkbox selected). | Expected: The Show checkbox for that field should be unchecked, while the available checkbox should still be checked. || Step 4: Uncheck both the Show checkboxes for a field e.g. Wip Deselected. | Expected: Both the Show checkboxes for the field should be deselected. || Step 5: Save as a new package. Screenshot changes and hit 'OK' button | Expected: Changes should be saved and admin app should close."
+79239,"Prebill Inquiry grid configuration - AR Aging, WIP Aging, Matter Summary, and Billing History",Design,ExpertSuite\Billing\Administration\Grids,2012-11-14T03:11:42.3Z,"Ensure settings for A/R Aging are applied firmwide for both the pages ROWS and COLUMNS:
+1. Move available columns up and down. 
+2. Show columns
+3. Make columns available
+4. Ensure the label corresponds to the correct column.
+ 
+Ensure all help links open to the correct help page when clicked.
+ 
+The following are the Available Columns for the ROWS page:
+Fees
+Premium Discounts
+Disbursements
+On Account
+Retainer
+Progress
+Taxes
+Interest
+ 
+The following are the Available Columns for the COLUMNS page:
+A/R Total
+ 
+Ensure all changes that are made in the Prebill Application are reflected in the Preview Bill.","Step 1: Move available columns up and downRearrange items in the Available Fields list. | Expected: In Prebill application, the columns should be the same order as the items in the Available Fields. || Step 2: Show columnsCheck or uncheck the Show option of the selected field. | Expected: The field should show in the grid if the option is enabled. It should not show if it is disabled. || Step 3: Make columns availableIn Expert Admin, check or uncheck the Available option of the selected field. In Prebill, right-click on the column heading of the grid. In the context menu, check the available columns. | Expected: The enabled columns should be in the columns list. The disabled columns should not. || Step 4: Ensure the label corresponds to the correct column || Step 5: AR Aging:Check available fieldsThe following are the Available Columns for the ROWS page:FeesPremium DiscountsDisbursementsOn AccountRetainerProgressTaxesInterestThe following are the Available Columns for the COLUMNS page:A/R Total | Expected: The fields are listed in the available fields. || Step 6: Billing History:Check available fieldsThe following are the Available Columns for BILLING HISTORY:Bill #Prebill #StatusBill DateFeesDisbursementsTotal BilledCredit AppliedTotal PaidTotal Written OffAR BalanceLast Payment Date Last Payment AmountProgressOtherCollectionsTran. Total Billed | Expected: The fields are listed in the available fields. || Step 7: Matter Summary:Check available fieldThe following are the Available Columns for the ROWS page:Accountable HoursNon-Billable HoursBillable HoursTotal Hours Hours Written Up/DownPremium DiscountsFees BilledFees Billed Net of Prem/DiscDisbursements BilledProgress BilledOther BilledTotal BilledProgress AppliedTotal Net BilledFees Written Up/DownDisb. Written Up/DownTotal Written Up/DownFees Written OffDisb. Written OffProgress Written OffOther Written OffTotal Written OffFees RecievedDisb. RecievedProgress RecievedOther RecievedTotal RecievedThe following are the Available Columns for the COLUMNS page:YTDLTD | Expected: The fields are listed in the available fields. || Step 8: WIP Aging:Check available fieldsThe following are the Available Columns for the ROWS page:FeesDisbursementsProgressThe following are the Available Columns for the COLUMNS page:WIP TotalProgress AvailableTotal Net WIP | Expected: The fields are listed in the available fields. || Step 9: Show changes in Preview BillEnsure all changes that are made in the Prebill Application are reflected in the Preview Bill. | Expected: Changes are shown in Preview Bill."
+79240,Prebill Inquiry grid configuration - Billing History,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Miscellaneous\Configuration,2012-11-14T03:11:42.43Z,"Ensure settings for Billing History are applied firmwide:
+1. Move available columns up and down. 
+2. Show columns
+3. Make columns available
+4. Ensure the label corresponds to the correct column.
+ 
+Ensure all help links open to the correct help page when clicked.
+ 
+The following are the Available Columns for BILLING HISTORY:
+Bill #
+Prebill #
+Status
+Bill Date
+Fees
+Disbursements
+Total Billed
+Credit Applied
+Total Paid
+Total Written Off
+AR Balance
+Last Payment Date
+Last Payment Amount
+Progress 
+Other 
+Collections
+Tran. Total Billed
+ 
+Ensure all changes that are made in the Prebill Application are reflected in the Preview Bill.",
+79241,Prebill Inquiry grid configuration - Matter Summary,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Miscellaneous\Configuration,2012-11-14T03:11:42.57Z,"Ensure settings for Matter Summary are applied firmwide for both the pages ROWS and COLUMNS:
+1. Move available columns up and down
+2. Show columns
+3. Make columns available
+4. Ensure the label corresponds to the correct column.
+ 
+Ensure all help links open to the correct help page when clicked.
+ 
+The following are the Available Columns for the ROWS page:
+Accountable Hours
+Non-Billable Hours
+Billable Hours
+Total Hours 
+Hours Written Up/Down
+Premium Discounts
+Fees Billed
+Fees Billed Net of Prem/Disc
+Disbursements Billed
+Progress Billed
+Other Billed
+Total Billed
+Progress Applied
+Total Net Billed
+Fees Written Up/Down
+Disb. Written Up/Down
+Total Written Up/Down
+Fees Written Off
+Disb. Written Off
+Progress Written Off
+Other Written Off
+Total Written Off
+Fees Recieved
+Disb. Recieved
+Progress Recieved
+Other Recieved
+Total Recieved
+ 
+The following are the Available Columns for the COLUMNS page:
+YTD
+LTD
+ 
+Ensure all changes that are made in the Prebill Application are reflected in the Preview Bill.",
+79242,Prebill Inquiry grid configuration - WIP Aging,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Miscellaneous\Configuration,2012-11-14T03:11:42.703Z,"Ensure settings for WIP Aging are applied firmwide for both the pages ROWS and COLUMNS:
+1. Move available columns up and down. 
+2. Show columns
+3. Make columns available
+4. Ensure the label corresponds to the correct column.
+ 
+Ensure all help links open to the correct help page when clicked.
+ 
+The following are the Available Columns for the ROWS page:
+Fees
+Disbursements
+Progress
+ 
+The following are the Available Columns for the COLUMNS page:
+WIP Total
+Progress Available
+Total Net WIP
+ 
+Ensure all changes that are made in the Prebill Application are reflected in the Preview Bill.",
+79243,Prebill Firm Config Options - Display Time as HHMM,Design,ExpertSuite\Billing\Billing App\Paperless PreBill\Miscellaneous\Configuration,2012-11-14T03:11:42.853Z,"In the admin app, turn on ""Display Time as HH:MM"".
+ 
+Open Configuration Manager.
+Navigate to All Settings \ Technical \ Applications\ Paperless Prebill \ Options \ DisplayTimeAsHoursMins.
+In the list of values, delete all values with ""User"" in the scope.
+ 
+Clear cache, open Prebill and open a Time grid.
+Expected outcome: The hours should be displayed in the format of hours and minutes. E.g. 1 hour 30 minutes is displayed as ""1h 30m"".
+ 
+ 
+When the ""Display Time as HH:MM"" is turned off.
+Expected outcome: The hours should be displayed as decimal time. E.g. 1 hour 30 minutes is displayed as ""1.50"".
+ 
+ 
+ 
+Notes: 
+- The format is different from the ""HH:MM"" described in the help document. E.g. 1 hour 30 minutes would be ""00:30"". (Bug #66593)
+- The user configuration will be created after Prebill is closed. The user configuration must be deleted again to make the firmwide setting effective again. (Bug #66627, Bug #66016, Scenario #66548)","Step 1: In the admin app under Billing > Billing Options > Fees/Disbursements, turn on ""Display Time as Hours and Minutes"". || Step 2: Open Configuration Manager.Navigate to All Settings \ Technical \ Applications\ Paperless Prebill \ Options \ DisplayTimeAsHoursMins.In the list of values, delete all values with ""User"" in the scope. || Step 3: Clear cache, open Prebill and open a Time grid.Expected outcome: The hours should be displayed in the format of hours and minutes. E.g. 1 hour 30 minutes is displayed as ""1h 30m"". | Expected: When the ""Display Time as HH:MM"" is turned off.Expected outcome: The hours should be displayed as decimal time. E.g. 1 hour 30 minutes is displayed as ""1.50""."
+79244,Prebill Firm Config Options - Print Zero Amount Transaction on Bill,Design,ExpertSuite\Billing\Billing App\Paperless PreBill\Miscellaneous\Configuration,2012-11-14T03:11:43.01Z,"Ensure settings for ""Print zero amount transactions on bill"" are applied firmwide:
+ 
+Ensure all help links open to the correct help page when clicked.
+ 
+1. Check the zero amount transactions are not printed when the option is off.
+In the admin app, turn off ""Print zero amount transactions on bill.""
+ 
+In Prebill application, navigate to a Time grid.
+To see the result, ""Print on Bill"" in the stacked grid must be turned on. (Right click on a column heading. In Stacked Grid, check ""Print on Bill"".)
+Change the bill hour or bill amount of a transaction to 0.
+Expected outcome: ""Print on Bill"" changes from Yes to No.
+ 
+Check ""Print Prebill"", the zero transactions should not be listed.
+ 
+2. Check the zero amount transactions are printed when the option is on.
+Turn on ""Print zero amount transactions on bill."" option in the admin app, clear the cache, then repeat the previous test. 
+Expected outcome: ""Print on Bill"" should remain Yes the whole time.
+ 
+Ensure all changes that are made in the Prebill Application are reflected in the Preview Bill.",
+79245,Prebill Inquiries View Configuration Set up,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Miscellaneous\Configuration,2012-11-14T03:11:43.153Z,"Ensure settings for Inquiries View are applied firmwide:
+1. Move columns up and down 
+2. Show Columns 
+ 
+ 
+Ensure all help links open to the correct help page when clicked.
+ 
+The following are the Available Columns:
+  Billing History Inquiry
+  Matter Summary Inquiry
+  AR Aging Inquiry
+  WIP Aging Inquiry
+ 
+Ensure all changes that are made in the Prebill Application are reflected in the Preview Bill.",
+79246,Prebill Time Grid Configuration Set up,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Miscellaneous\Configuration,2012-11-14T03:11:43.303Z,"Ensure settings for Time Grid are applied firmwide:
+1. Add and Remove Available Fields
+2. Add and Remove Column & Stack Defaults
+3. Move columns up and down for Column & Stack Defaults
+4. Change the Label name
+5. Ensure the following checkboxes execute correctly when selected:
+- Available
+- Available in Stacks
+- Is Readonly
+ 
+**** NOTE// to successfully rearrange columns in Expert Administration and make them show in that order. You need to delete the user configuration and clear the cache.
+ 
+The configuration to delete in Configuration Manager is the whole directory of 
+Preference.Applications.ExpertPaperlessPrebill
+Also, delete the user configuration of Preference.AvailableProperties.TimeEntryInstances.ExpertPaperlessPrebill. (Keep the system config values)
+ 
+Also NOTE//  that the user configuration is generated again when you close the Prebill application ****.
+ 
+ 
+The following are the Available Fields:
+Disbusement ID  
+Date
+Actual Disbursement Type
+Actual Timekeeper
+Narrative
+Billed Quantity
+Billed Amount
+Billed Disbursement Type
+Phase Task
+Location
+Reference
+Print On Bill
+Sequence
+Summarize
+Prebill Comment
+Billed Employee
+Base Quantity
+Base Amount
+Standard Amount
+ 
+Ensure all help links open to the correct help page when clicked.
+ 
+Ensure all changes that are made in the Prebill Application are reflected in the Preview Bill.",
+79247,Prebill Time Summaries Configuration setup,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Miscellaneous\Configuration,2012-11-14T03:11:43.447Z,"Ensure settings for Time Summaries are applied firmwide:
+1. Move available columns up and down. 
+2. Show columns
+3. Make columns available
+4. Ensure the label corresponds to the correct column.
+ 
+Ensure all help links open to the correct help page when clicked.
+ 
+The following are the Available Columns:
+Bill Hours
+Rate
+Bill Amount
+Base Hours
+Base Amount
+Standard Amount
+ 
+Ensure all changes that are made in the Prebill Application are reflected in the Preview Bill.",
+79248,Prebill Time View Configuration Set up,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Miscellaneous\Configuration,2012-11-14T03:11:43.583Z,"Ensure settings for Time View are applied firmwide:
+1. Move columns up and down 
+2. Show Columns 
+ 
+ 
+Ensure all help links open to the correct help page when clicked.
+ 
+The following are the Available Columns:
+  Time Entries
+  Timekeeper Summary
+  Rank Summary 
+  Phase Task Summary 
+  Action Code Summary 
+  Time Date Summary 
+  Office Summary
+  Department Summary
+ 
+Ensure all changes that are made in the Prebill Application are reflected in the Preview Bill.",
+79249,Prebll Outline Pane Configuration,Design,ExpertSuite\Billing\Administration\Billing Options,2012-11-14T03:11:43.733Z,"Ensure settings for Outline Pane are applied firmwide:
+1. Move columns up and down 
+2. Show Columns 
+ 
+The following are the Available Columns:
+  Summary
+    Bill Summary
+    Matter Summary
+  Details
+    Bill Details
+    Matter Details
+  Payor Details
+  Time
+  Disbursements
+  Inquiries
+ 
+Ensure all changes that are made in the Prebill Application are reflected in the Preview Bill. 
+ 
+Ensure all help links open to the correct help page when clicked.",
+79250,CS parameters influence view of bill summary information in Prebill,Design,ExpertSuite\Billing\Billing App\Paperless PreBill\Miscellaneous\Configuration,2012-11-14T03:11:43.87Z,"In the Bill Summary (or Matter Summary), the following rows will only be displayed if the associated paramters (which are sync'd from C/S) are set to 'True':
+ 
+To view/change in Configuration Manger:                                                            To view/change in C/S:
+Path 'Business.Billing.General' name  'AllowOnAccountDisbursements'
+Path 'Business.Billing.General' name  'AllowOnAccountFees'
+Path 'Business.Billing.General' name  'AllowProgress'
+Path 'Business.Billing.General' name  'AllowRetainer'
+Path 'Business.Billing.General' name  'TimeProrateBy'
+ 
+To check the values via SQL:
+select a.*, b.id as ValueId, CONTENT,DESCRIPTION   from CFM_CONFIGURATION_NAME a 
+inner join CFM_CONFIGURATION_VALUE b on a.ID = b.NAMEID 
+where (path = 'Business.Billing.General' and name in ( 'AllowOnAccountDisbursements','AllowOnAccountFees','AllowProgress','AllowRetainer','TimeProrateBy'))
+   or (path = 'Business.Billing.General.PremiumDiscounts' and name in ( 'Allow'))
+   or (path = 'Business.TimeAndBilling.DebtorsAging' )
+   or (path = 'Business.TimeAndBilling.General' and name in ( 'IsTBBVerified'))
+   or (path = 'Business.TimeAndBilling.Time' and name in ( 'TimeInHoursMins','TimeIncrement','RoundType','IsNarrativeRequired'))
+   or (PATH like  'Technical.Applications.ExpertAssistant.AvailabilityIndicator')
+order by PATH
+ 
+ 
+SQL to reset parameters to default values
+--update CFM_CONFIGURATION_VALUE set CONTENT = 'True' where ID = '876A4D58-CB12-4170-8BB9-9E4800BD82A4' --'AllowOnAccountFees'
+--update CFM_CONFIGURATION_VALUE set CONTENT = 'True' where ID = '03EF757A-EE63-4AED-87D2-9E4800BD8298'  --'AllowOnAccountDisbursements'
+--update CFM_CONFIGURATION_VALUE set CONTENT = 'True' where ID = '29361285-1FBE-44AB-8E12-9E4800BD82B9' --'AllowRetainer'
+--update CFM_CONFIGURATION_VALUE set CONTENT = 'True' where ID = 'AA60D60D-5A90-4D32-8E0D-9E4800BD82AF' --'AllowProgress'
+--update CFM_CONFIGURATION_VALUE set CONTENT = 'True' where ID = '49712876-426D-4B88-98F6-9E4800BD8283' --'Allow'
+--update CFM_CONFIGURATION_VALUE set CONTENT = 'False' where ID = 'F77E3556-6D2E-4792-8398-9E4800BD7F0D' --'IsTBBVerified'
+--update CFM_CONFIGURATION_VALUE set CONTENT = 'True' where ID = 'CDC90E28-3F43-4A5F-ABDE-9E4800BD804C' --'IsNarrativeRequired'
+--update CFM_CONFIGURATION_VALUE set CONTENT = 'False' where ID = 'A1393838-0B7D-4FA4-9980-9E4800BD8063' --'TimeInHoursMins'
+ 
+--update CFM_CONFIGURATION_VALUE set CONTENT = 'False' where ID = '52528B56-47EB-49F8-9AE2-9E4800BC4856' --'EnableAvailabilityIndicator'
+ 
+SQL to change parameters from default values
+--update CFM_CONFIGURATION_VALUE set CONTENT = 'False' where ID = '876A4D58-CB12-4170-8BB9-9E4800BD82A4' --'AllowOnAccountFees'
+--update CFM_CONFIGURATION_VALUE set CONTENT = 'False' where ID = '03EF757A-EE63-4AED-87D2-9E4800BD8298'  --'AllowOnAccountDisbursements'
+--update CFM_CONFIGURATION_VALUE set CONTENT = 'False' where ID = '29361285-1FBE-44AB-8E12-9E4800BD82B9' --'AllowRetainer'
+--update CFM_CONFIGURATION_VALUE set CONTENT = 'False' where ID = 'AA60D60D-5A90-4D32-8E0D-9E4800BD82AF' --'AllowProgress'
+--update CFM_CONFIGURATION_VALUE set CONTENT = 'False' where ID = '49712876-426D-4B88-98F6-9E4800BD8283' --'Allow'
+--update CFM_CONFIGURATION_VALUE set CONTENT = 'False' where ID = 'F77E3556-6D2E-4792-8398-9E4800BD7F0D' --'IsTBBVerified'
+--update CFM_CONFIGURATION_VALUE set CONTENT = 'False' where ID = 'CDC90E28-3F43-4A5F-ABDE-9E4800BD804C' --'IsNarrativeRequired'
+--update CFM_CONFIGURATION_VALUE set CONTENT = 'False' where ID = 'A1393838-0B7D-4FA4-9980-9E4800BD8063' --'TimeInHoursMins'
+ 
+ 
+--update CFM_CONFIGURATION_VALUE set CONTENT = 'True' where ID = '52528B56-47EB-49F8-9AE2-9E4800BC4856' --'EnableAvailabilityIndicator'",
+79366,Prebill - Print Draft bill - Verify Changes in Draft - Disbursement,Design,ExpertSuite\Billing\Billing App\Paperless PreBill\Markup Workflow\Documents\Markup Audit Report,2012-11-15T03:37:01.64Z,,
+79375,Prebill - Print Draft Bill - Verify changes in Draft - Time Entry,Design,ExpertSuite\Billing\Billing App\Paperless PreBill\Markup Workflow\Documents\Markup Audit Report,2012-11-15T22:16:31.953Z,"Stacked Cell Values
+Draft is only impacted when the timekeeper is edited.",
+79376,Prebill - Print Draft Bill - Verify changes in Draft - Time Summary,Design,ExpertSuite\Billing\Billing App\Paperless PreBill\Markup Workflow\Documents\Markup Audit Report,2012-11-15T22:48:54.883Z,,
+79499,Prebill - Audit Report - End to End,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Markup Workflow\Documents,2012-11-22T03:29:59.323Z,,
+79594,Prebill - Audit Report - End to End,Design,ExpertSuite\Billing\Billing App\Paperless PreBill\Markup Workflow\Documents,2012-11-27T03:33:21.533Z,"Time Entry:
+Transfer
+Split
+Return to WIP
+Add Note
+Narrative
+Edit - Hours, Rate and Billed Amount
+ 
+ 
+Disbursement:
+Transfer
+Return to WIP
+Add Note
+Narrative
+Edit - Quantity and amount",
+79665,Transfer disbursements to another matter (different client),Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Markup Workflow\Return Prebill to WIP,2012-11-29T01:30:39.68Z,"Ensure that you can successfully transfer a disbursement entry to another matter for a different client.
+ 
+TEST STEPS:
+1. Accept Prebill markup task. Prebill Editor tab should be displayed.
+2. Select Disbursements page for one of the matters in the prebill. Disbursement Entries page should display (all disbursement types).
+3. Right-click on a disbursement entry and select Transfer. Transfer dialog should be displayed with the current matter and client name in the From field.
+4. Select the matter to transfer 'To' for a different client and select a 'Reason' (both fields should be required).
+* Leave 'Open Time Card when done' checkbox unselected.
+* Click 'OK' button.
+ 
+EXPECTED RESULTS:
+* The disbursement entry should be removed from the current disbursement page
+* The current disbursement page total should be reduced by the transferred disbursement amount.
+* Ensure there is a correct change log entry in the Changes pane.
+* Ensure the summary pane has been updated accordingly.
+* Ensure the matter summary page has been updated accordingly.
+* Ensure the bill summary page has been updated accordingly.
+* Complete the task and ensure the change has been persisted to the BLE_MARKUP_DETAIL table in the Expert database. The new and original values are in the MARKUP MESSAGE column.
+ 
+select * from BLE_MARKUP_DETAIL 
+where markup_type != 'TS'
+order by ROW_UNO desc",
+79670,Transfer disbursements to another matter in the same bill,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Markup Workflow\Return Prebill to WIP,2012-11-29T01:43:16.5Z,"Ensure that you can successfully transfer a disbursement entry to another matter in the same bill.
+ 
+TEST STEPS:
+1. Accept Prebill markup task. Prebill Editor tab should be displayed.
+2. Select Disbursements page for one of the matters in the prebill. Disbursement Entries page should display (all disbursement types).
+3. Right-click on a disbursement entry and select Transfer. Transfer dialog should be displayed with the current matter and client name in the From field.
+4. Select the matter to transfer 'To' (from the same prebill) and select a 'Reason' (both fields should be required).
+* Leave 'Open Time Card when done' checkbox unselected.
+* Click 'OK' button.
+ 
+EXPECTED RESULTS:
+i) The disbursement entry should be removed from the current disbursement page
+ii) The current disbursement page total should be reduced by the transferred disbursement amount.
+iii) The transferred disbursement should be displayed in the disbursement page of the 'To' matter.
+iv) The 'To' matter disbursement page total should be increased by the transferred disbursement amount.
+v) Ensure there is a correct change log entry in the Changes pane.
+vi) There should be no change to the summary pane.
+v) Complete the task and ensure the change has been persisted to the BLE_MARKUP_DETAIL table in the Expert database. The new and original values are in the MARKUP MESSAGE column.
+ 
+select * from BLE_MARKUP_DETAIL where markup_type != 'TS' order by ROW_UNO desc",Step 1: Select the matter to transfer 'To' (from the same prebill) and select a 'Reason' (both fiedls should be required). * Leave 'Open Time Card when done' checkbox unselected. * Click 'Ok' button. | Expected: The disbursement entry should be removed from the current disbursement page. The current disbursement page total should be reduced by the transferred disbursement amount. The transferred disbursement should be displayed in the disbursement page of the 'To' matter. The 'To' matter disbursement page total should be increased by the transferred disbursement amount. Ensure there is a correct change log entry in the 'Changes' pane. There should be no change to the Summary pane. Complete the task and ensure the change has been persisted to the BLE_MARKUP_DETAIL table in the Expert database. The new and original values are in the MARKUP MESSAGE column. (select * from BLE_MARKUP_DETAIL where markup_type!='TS' order by ROW_UNO desc). Note: It is important that you create a prebill specific for this test case. Data from existing prebills might not be behaving as expected.
+79671,"Transfer disbursements to another matter in the same bill, then open Disbursement Card.",Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Markup Workflow\Return Prebill to WIP,2012-11-29T01:57:12.367Z,"Ensure that you can successfully transfer a disbursement entry to another matter in the same bill, then open the time card.
+ 
+TEST STEPS:
+1. Accept Prebill markup task. Prebill Editor tab should be displayed.
+2. Select Disbursements page for one of the matters in the prebill. Disbursement Entries page should display (all disbursement types).
+3. Right-click on a disbursement entry and select Transfer. Transfer dialog should be displayed with the current matter and client name in the From field.
+4. Select the matter to transfer 'To' (from the same prebill) and select a 'Reason' (both fields should be required).
+* Select the 'Open Time Card when done' checkbox (tick).
+* Click 'OK' button.
+ 
+EXPECTED RESULTS:
+i) The disbursement entry should be removed from the current disbursement page
+ii) The current disbursement page total should be reduced by the transferred disbursement amount.
+iii) The transferred disbursement should be displayed in the disbursement page of the 'To' matter.
+iv) The 'To' matter disbursement page total should be increased by the transferred disbursement amount.
+v) Ensure there is a correct change log entry in the Changes pane.
+vi) There should be no change to the summary pane.
+v) Complete the task and ensure the change has been persisted to the BLE_MARKUP_DETAIL table in the Expert database. The new and original values are in the MARKUP MESSAGE column.
+ 
+select * from BLE_MARKUP_DETAIL 
+where markup_type != 'TS'
+order by ROW_UNO desc
+ 
+vi) ASSUME TIME CARD OPENS...??",Step 1: Select the matter to transfer 'To' (from the same prebill) and select a 'Reason' (both fields should be required).* Select the 'Open Disbursement Card when done' checkbox (tick).* Click 'OK' button. | Expected: The Disbursement card opens. The disbursement entry should be removed from the curent disbursement page. The current disbursement page total should be reduced by the transferred disbursement amount. The transferred disbursement should be displayed in the disbursement page of the 'To' matter. The 'To' matter disbursement page total should be increased by the transferred disbursement amount. Ensure there is a correct change log entry in the 'Changes' pane. There should be no change to the summary pane. Complete the task and ensure the change has been persisted to the BLE_MARKUP_DETAIL table in the Expert database. The new and original values are in the MARKUP MESSAGE column. (select * from BLE_MARKUP_DETAIL order by ROW_UNO desc)
+79714,Prebill - Comparing Print Prebill Doc and Audit Report Doc,Design,ExpertSuite\Billing\Billing App\Paperless PreBill\Markup Workflow\Documents,2012-12-03T00:46:05.13Z,"Time Entry:
+Transfer
+Split
+Return to WIP
+Add Note
+Narrative
+Edit - Hours, Rate and Billed Amount
+ 
+ 
+Disbursement:
+Transfer
+Return to WIP
+Add Note
+Narrative
+Edit - Quantity and amount",
+79785,Cancel workflow from Expert Assistant process list.,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Workflow General\Workflow Task Actions,2012-12-06T01:01:21.917Z,"The workflow can be cancelled at any point in the workflow using the 'Cancel' option from the right-click context manu in the Expert Assistant's process list.
+ 
+See the step and test for both the markup and approval workflows.",
+79789,Cancel prebill workflow from Task,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Workflow General\Workflow Task Actions,2012-12-06T01:05:35.473Z,"The workflow can be cancelled at any point in the workflow using the 'Cancel Process' button on the task ribbon.
+ 
+See the steps and test for both the markup and approval workflows.",
+79794,Terminate prebill workflow from Expert Assistant process list.,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Workflow General\Workflow Task Actions,2012-12-06T01:38:18.74Z,"The workflow can be terminated at any point in the workflow using the 'Cancel' option from the right-click context menu in Expert Assistant's process list.
+ 
+See the steps and test both the markup and approval workflows.
+ 
+Note: Terminating a workflow process doesn't invoke the cancellation handler, so the prebill will remain locked and no email will be sent to the administrator.",
+79800,Terminate prebill workflow from Task.,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Workflow General\Workflow Task Actions,2012-12-06T01:47:01.403Z,"The workflow can be terminated at any point in the workflow using the 'Cancel Process' button on the task ribbon.
+ 
+See the steps and test both the markup and approval workflows.
+ 
+Note: Terminating a workflow process doesn't invoke the cancellation handler, so the prebill will remain locked and no email will be sent to the administrator.",
+80085,Using the right level of hierarchy (Multi-Currency setting),Design,ExpertSuite\Billing\Rates\Application\Rate Calculator,2012-12-11T22:37:50.08Z,"Ensure that the rate calculator processes the right level of hierarchy to calculate rate after implementing Multi-Currency.
+ 
+Not sure?? - how we update the action code RATES?","Step 1: Navigate to the Matter page || Step 2: Select a client matter | Expected: [Set up a client with VEB as the Matter Currency and include that here] || Step 3: Delete any previous timekeeper rates in all of the Matter Rates, Client Rates and Rate Set Rates (if any attached). | Expected: Making sure we test with clean data. || Step 4: Attach a Fee Rate Set and create a timekeeper rate with timekeeper NZ81, currency VEB and a rate of 50,000. | Expected: After saving this rate it should automatically been put on the grid if there are no filters selected || Step 5: Open up Time Rate Calculator and fill in with NZ81, VEB Client/VEB Matter and leave the action code as default | Expected: Should pick up the rate of 50,000 VEB and source of rate is Matter Rate Set || Step 6: Create a  Client Rank rate for the same matter with rank = Partner, start date = today, currency = VEB and Rate = 60,000 | Expected: After saving this rate it should automatically been put on the grid if there are no filters selected || Step 7: Open up Time Rate Calculator and fill in with NZ81, VEB Client/VEB Matter and leave the action code as default | Expected: Should pick up the rate of 60,000 VEB and source of rate is Client Rank Rate. (Note: if client rank rate is not being calculated, check ""Allow Special Rates"" is ticked in CMS Employee Management > Time and Billing. Also check that the rank of your user is the same as the rank rate) || Step 8: Create a Matter Rate to this matter with timekeeper VEB Client/VEB Matter, currency VEB and a rate = 70,000 | Expected: After saving this rate it should automatically been put on the grid if there are no filters selected || Step 9: Open up Time Rate Calculator and fill in with NZ81, VEB Client/VEB Matter and leave the action code as default | Expected: Should pick up the rate of 70,000 VEB and source of rate is Matter Timekeeper Rate || Step 10: Open CMS and navigate to Time Accounting and expand Time Set up. Double click on the Action Codes and create an action code (for e.g. VEBA) for the VEB Client. Add the Unit Rate as 55,000.67 and select the currency as VEB. | Expected: The Action Code is created. || Step 11: Open Expert Rates and open up Time Rate Calculator and fill in with NZ81, VEB Client/VEB Matter and change the action code as VEBA | Expected: Should pick up the rate of 55,000.67 and source of rate is Action Code."
+80090,MultiCurrency - Summary Page - Checking the figures in Summary grid,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Markup Workflow,2012-12-11T22:47:40.89Z,"The values on the Summary page come directly from the billing summary tables (BLT_BILLM or BLT_BILLP). As this data is stored in the currency for the bill, no conversion needs to occur before it is displayed.
+ 
+Check the data displayed on the summary pages matches:
+- The corresponding columns in the database tables
+- The Billing Desktop in Expert Classic
+ 
+Data required:
+Prebill with system currency, has data in ALL fields displayed in summary
+Prebill with VEB currency, has data in ALL fields displayed in summary",
+80093,MultiCurrency - Time Entries for Matter - Check the figures in the Time grid,Closed,ExpertSuite\Billing\Billing App\Paperless PreBill\Markup Workflow,2012-12-11T22:58:50.477Z,"The implementation of multi-currency should affect the calculation and retrieval of the Time pages in a prebill application.
+ 
+1. Bill Amount column does not undergo the conversion process and hence no change should be reflected (this is stored and displayed in bill currency until bill is posted).
+2. Base Amount and Standard Amount undergo the conversion process and hence check if the values are correctly calculated.",
