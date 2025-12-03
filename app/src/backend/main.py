@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
+import anthropic
 
 from agent.agent import TestCaseAgent
 
@@ -102,10 +103,20 @@ class PRInfoResponse(BaseModel):
     """Response model for PR info fetch."""
     pr_number: int = Field(description="The PR number")
     title: str = Field(description="PR title")
+    state: str = Field(description="PR state: open, closed, or merged")
     files_changed: list[FileChange] = Field(description="List of changed files")
     total_files: int = Field(description="Total number of files changed")
     total_additions: int = Field(description="Total lines added")
     total_deletions: int = Field(description="Total lines deleted")
+
+
+class PRSummaryResponse(BaseModel):
+    """Response model for AI-generated PR summary."""
+    pr_number: int = Field(description="The PR number")
+    title: str = Field(description="PR title")
+    summary: str = Field(description="AI-generated summary of the changes")
+    files_changed: list[str] = Field(description="List of changed file names")
+    total_files: int = Field(description="Total number of files changed")
 
 
 @app.get("/", response_model=HealthResponse)
@@ -322,6 +333,7 @@ async def fetch_pr_info(pr_number: int):
         return PRInfoResponse(
             pr_number=pr_number,
             title=pr_data.get("title", ""),
+            state=pr_data.get("state", ""),
             files_changed=file_changes,
             total_files=len(file_changes),
             total_additions=total_additions,
@@ -461,6 +473,140 @@ async def detect_duplicates(
     except Exception as e:
         print(f"Error detecting duplicates: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Duplicate detection failed: {str(e)}")
+
+
+@app.get("/summarize-pr/{pr_number}", response_model=PRSummaryResponse)
+async def summarize_pr_changes(pr_number: int):
+    """
+    Generate an AI-powered summary of file changes in a Pull Request.
+    
+    Args:
+        pr_number: The PR number to summarize
+        
+    Returns:
+        AI-generated summary of the changes made in the PR
+    """
+    if not GITHUB_OWNER or not GITHUB_REPO:
+        raise HTTPException(
+            status_code=500,
+            detail="GitHub configuration missing. Please set GITHUB_TOKEN, GITHUB_OWNER, and GITHUB_REPO in .env file"
+        )
+    
+    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not anthropic_api_key:
+        raise HTTPException(
+            status_code=500,
+            detail="ANTHROPIC_API_KEY not configured in .env file"
+        )
+    
+    try:
+        # Fetch PR details from GitHub
+        pr_url = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/pulls/{pr_number}"
+        files_url = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/pulls/{pr_number}/files"
+        
+        headers = get_github_headers()
+        
+        # Fetch PR details
+        pr_response = requests.get(pr_url, headers=headers, timeout=30)
+        
+        if pr_response.status_code == 404:
+            raise HTTPException(status_code=404, detail=f"PR #{pr_number} not found")
+        
+        if pr_response.status_code != 200:
+            raise HTTPException(
+                status_code=pr_response.status_code,
+                detail=f"GitHub API error: {pr_response.text}"
+            )
+        
+        pr_data = pr_response.json()
+        pr_title = pr_data.get("title", "")
+        pr_body = pr_data.get("body", "") or ""
+        
+        # Fetch changed files with patches
+        files_response = requests.get(files_url, headers=headers, timeout=30)
+        
+        if files_response.status_code != 200:
+            raise HTTPException(
+                status_code=files_response.status_code,
+                detail=f"Failed to fetch PR files: {files_response.text}"
+            )
+        
+        files_data = files_response.json()
+        
+        # Build file changes summary for AI
+        file_summaries = []
+        file_names = []
+        for file in files_data:
+            filename = file.get("filename", "")
+            file_names.append(filename)
+            status = file.get("status", "")
+            additions = file.get("additions", 0)
+            deletions = file.get("deletions", 0)
+            patch = file.get("patch", "")
+            
+            # Truncate large patches to avoid token limits
+            if len(patch) > 2000:
+                patch = patch[:2000] + "\n... (truncated)"
+            
+            file_summaries.append(f"""
+File: {filename}
+Status: {status}
+Changes: +{additions} -{deletions}
+Diff:
+{patch}
+""")
+        
+        # Prepare prompt for Claude
+        changes_text = "\n---\n".join(file_summaries)
+        
+        prompt = f"""Analyze this Pull Request and provide a clear, concise summary of the changes.
+
+PR Title: {pr_title}
+PR Description: {pr_body[:1000] if pr_body else "No description provided"}
+
+Files Changed ({len(files_data)} files):
+{changes_text}
+
+Please provide:
+1. A brief overall summary of what this PR accomplishes (2-3 sentences)
+2. Key changes organized by category (e.g., New Features, Bug Fixes, Refactoring, etc.)
+3. Any notable patterns or concerns in the changes
+
+Keep the summary concise but informative."""
+
+        # Call Claude API
+        client = anthropic.Anthropic(api_key=anthropic_api_key)
+        model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5")
+        
+        message = client.messages.create(
+            model=model,
+            max_tokens=2048,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+        
+        summary = message.content[0].text
+        
+        return PRSummaryResponse(
+            pr_number=pr_number,
+            title=pr_title,
+            summary=summary,
+            files_changed=file_names,
+            total_files=len(files_data)
+        )
+        
+    except requests.exceptions.Timeout:
+        raise HTTPException(status_code=504, detail="GitHub request timed out")
+    except requests.exceptions.ConnectionError:
+        raise HTTPException(status_code=503, detail="Could not connect to GitHub")
+    except anthropic.APIError as e:
+        raise HTTPException(status_code=500, detail=f"AI API error: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error summarizing PR: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to summarize PR: {str(e)}")
 
 
 if __name__ == "__main__":
