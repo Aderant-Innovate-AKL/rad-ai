@@ -127,6 +127,7 @@ class PRInfoResponse(BaseModel):
     total_files: int = Field(description="Total number of files changed")
     total_additions: int = Field(description="Total lines added")
     total_deletions: int = Field(description="Total lines deleted")
+    summary: str = Field(default="", description="AI-generated summary of the changes")
 
 
 class PRSummaryResponse(BaseModel):
@@ -166,6 +167,37 @@ async def health_check():
         }
 
 
+@app.get("/get-test-cases-csv")
+async def get_test_cases_csv():
+    """
+    Serve the test cases CSV file for analysis.
+    
+    Returns:
+        CSV file containing test cases
+    """
+    from fastapi.responses import FileResponse
+    
+    # Look for test cases CSV file in common locations
+    possible_paths = [
+        Path(__file__).parent.parent.parent.parent / "test_cases_with_descriptions_expert_disbursements.csv",
+        Path(__file__).parent.parent.parent.parent / "test_cases_expert_disbursements.csv",
+        Path(__file__).parent / "test_cases.csv",
+    ]
+    
+    for csv_path in possible_paths:
+        if csv_path.exists():
+            return FileResponse(
+                path=str(csv_path),
+                media_type="text/csv",
+                filename="test_cases.csv"
+            )
+    
+    raise HTTPException(
+        status_code=404,
+        detail="Test cases CSV file not found. Please ensure a test cases file exists."
+    )
+
+
 def get_tfs_headers():
     """Get authorization headers for TFS API calls."""
     if not TFS_PAT:
@@ -201,6 +233,85 @@ def extract_html_text(html_content: str) -> str:
     # Clean up whitespace
     text = re.sub(r'\n\s*\n', '\n\n', text)
     return text.strip()
+
+
+def generate_pr_summary(pr_title: str, pr_body: str, files_data: list) -> str:
+    """
+    Generate an AI-powered summary of PR changes using Claude.
+    
+    Args:
+        pr_title: The PR title
+        pr_body: The PR description/body
+        files_data: List of file change data from GitHub API
+        
+    Returns:
+        AI-generated summary string, or empty string if summarization fails
+    """
+    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not anthropic_api_key:
+        print("Warning: ANTHROPIC_API_KEY not configured, skipping AI summary")
+        return ""
+    
+    try:
+        # Build file changes summary for AI
+        file_summaries = []
+        for file in files_data:
+            filename = file.get("filename", "")
+            status = file.get("status", "")
+            additions = file.get("additions", 0)
+            deletions = file.get("deletions", 0)
+            patch = file.get("patch", "")
+            
+            # Truncate large patches to avoid token limits
+            if len(patch) > 2000:
+                patch = patch[:2000] + "\n... (truncated)"
+            
+            file_summaries.append(f"""
+File: {filename}
+Status: {status}
+Changes: +{additions} -{deletions}
+Diff:
+{patch}
+""")
+        
+        # Prepare prompt for Claude
+        changes_text = "\n---\n".join(file_summaries)
+        
+        prompt = f"""Analyze this Pull Request and provide a clear, concise summary of the changes.
+
+PR Title: {pr_title}
+PR Description: {pr_body[:1000] if pr_body else "No description provided"}
+
+Files Changed ({len(files_data)} files):
+{changes_text}
+
+Please provide:
+1. A brief overall summary of what this PR accomplishes (2-3 sentences)
+2. Key changes organized by category (e.g., New Features, Bug Fixes, Refactoring, etc.)
+3. Any notable patterns or concerns in the changes
+
+Keep the summary concise but informative."""
+
+        # Call Claude API
+        client = anthropic.Anthropic(api_key=anthropic_api_key)
+        model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5")
+        
+        message = client.messages.create(
+            model=model,
+            max_tokens=2048,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+        
+        return message.content[0].text
+        
+    except anthropic.APIError as e:
+        print(f"AI API error during summarization: {str(e)}")
+        return ""
+    except Exception as e:
+        print(f"Error generating PR summary: {str(e)}")
+        return ""
 
 
 @app.get("/fetch-bug-info/{bug_id}", response_model=BugInfoResponse)
@@ -349,14 +460,21 @@ async def fetch_pr_info(pr_number: int):
             total_additions += file.get("additions", 0)
             total_deletions += file.get("deletions", 0)
         
+        # Generate AI summary of the PR changes
+        pr_title = pr_data.get("title", "")
+        pr_body = pr_data.get("body", "") or ""
+        print("Generating AI summary of PR changes...")
+        summary = generate_pr_summary(pr_title, pr_body, files_data)
+        
         return PRInfoResponse(
             pr_number=pr_number,
-            title=pr_data.get("title", ""),
+            title=pr_title,
             state=pr_data.get("state", ""),
             files_changed=file_changes,
             total_files=len(file_changes),
             total_additions=total_additions,
-            total_deletions=total_deletions
+            total_deletions=total_deletions,
+            summary=summary
         )
         
     except requests.exceptions.Timeout:
@@ -621,60 +739,17 @@ async def summarize_pr_changes(pr_number: int):
         
         files_data = files_response.json()
         
-        # Build file changes summary for AI
-        file_summaries = []
-        file_names = []
-        for file in files_data:
-            filename = file.get("filename", "")
-            file_names.append(filename)
-            status = file.get("status", "")
-            additions = file.get("additions", 0)
-            deletions = file.get("deletions", 0)
-            patch = file.get("patch", "")
-            
-            # Truncate large patches to avoid token limits
-            if len(patch) > 2000:
-                patch = patch[:2000] + "\n... (truncated)"
-            
-            file_summaries.append(f"""
-File: {filename}
-Status: {status}
-Changes: +{additions} -{deletions}
-Diff:
-{patch}
-""")
+        # Get file names for response
+        file_names = [file.get("filename", "") for file in files_data]
         
-        # Prepare prompt for Claude
-        changes_text = "\n---\n".join(file_summaries)
+        # Generate AI summary using helper function
+        summary = generate_pr_summary(pr_title, pr_body, files_data)
         
-        prompt = f"""Analyze this Pull Request and provide a clear, concise summary of the changes.
-
-PR Title: {pr_title}
-PR Description: {pr_body[:1000] if pr_body else "No description provided"}
-
-Files Changed ({len(files_data)} files):
-{changes_text}
-
-Please provide:
-1. A brief overall summary of what this PR accomplishes (2-3 sentences)
-2. Key changes organized by category (e.g., New Features, Bug Fixes, Refactoring, etc.)
-3. Any notable patterns or concerns in the changes
-
-Keep the summary concise but informative."""
-
-        # Call Claude API
-        client = anthropic.Anthropic(api_key=anthropic_api_key)
-        model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5")
-        
-        message = client.messages.create(
-            model=model,
-            max_tokens=2048,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
-        
-        summary = message.content[0].text
+        if not summary:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to generate AI summary"
+            )
         
         return PRSummaryResponse(
             pr_number=pr_number,
