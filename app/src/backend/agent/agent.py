@@ -8,12 +8,13 @@ suggests updates, and detects duplicates using Anthropic Claude and semantic emb
 import os
 import csv
 import json
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Tuple, Optional, Literal
 from pathlib import Path
 import anthropic
 import numpy as np
 from dotenv import load_dotenv
 import sys
+from sentence_transformers import SentenceTransformer
 
 # Add MCP server to path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -32,13 +33,14 @@ class TestCaseAgent:
     and sentence transformers for semantic similarity matching.
     """
     
-    def __init__(self, api_key: str = None, use_mcp: bool = True):
+    def __init__(self, api_key: str = None, use_mcp: bool = True, embedding_model: str = 'all-MiniLM-L6-v2'):
         """
         Initialize the agent with necessary models and configurations.
         
         Args:
             api_key: Anthropic API key (defaults to ANTHROPIC_API_KEY env var)
             use_mcp: Whether to use MCP server for test case access (default: True)
+            embedding_model: Name of sentence-transformers model to use (default: 'all-MiniLM-L6-v2')
         """
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
         if not self.api_key:
@@ -50,6 +52,10 @@ class TestCaseAgent:
         # MCP integration
         self.use_mcp = use_mcp
         self.mcp_server = get_server() if use_mcp else None
+        
+        # Initialize sentence transformer for better embeddings
+        print(f"Loading embedding model: {embedding_model}...")
+        self.embedding_model = SentenceTransformer(embedding_model)
         
         # Cache for embeddings
         self.embeddings_cache = {}
@@ -141,49 +147,82 @@ class TestCaseAgent:
     
     def get_embedding(self, text: str) -> np.ndarray:
         """
-        Get embedding vector for a text string with caching using Claude.
+        Get embedding vector for a text string with caching using sentence transformers.
         
         Args:
             text: Text to embed
             
         Returns:
-            Embedding vector as numpy array (using simple hash-based embedding)
+            Embedding vector as numpy array (384-dimensional semantic embedding)
         """
         if text in self.embeddings_cache:
             return self.embeddings_cache[text]
         
-        # Create a simple embedding based on text characteristics
-        # This is a lightweight alternative that doesn't require PyTorch
-        words = text.lower().split()
-        
-        # Create a feature vector based on:
-        # - Length, word count, unique words, etc.
-        length_norm = min(len(text) / 1000.0, 1.0)
-        word_count_norm = min(len(words) / 100.0, 1.0)
-        unique_ratio = len(set(words)) / max(len(words), 1)
-        
-        # Create keyword-based features for test case domain
-        keywords = {
-            'post': 0, 'create': 0, 'edit': 0, 'delete': 0, 'release': 0,
-            'disbursement': 0, 'session': 0, 'currency': 0, 'split': 0,
-            'merge': 0, 'cancel': 0, 'import': 0, 'export': 0, 'security': 0,
-            'validation': 0, 'amount': 0, 'office': 0, 'employee': 0
-        }
-        
-        for word in words:
-            if word in keywords:
-                keywords[word] += 1
-        
-        # Normalize keyword counts
-        max_count = max(keywords.values()) if keywords.values() else 1
-        max_count = max(max_count, 1)  # Ensure it's at least 1 to avoid division by zero
-        keyword_features = [count / max_count for count in keywords.values()]
-        
-        # Combine into embedding vector
-        embedding = np.array([length_norm, word_count_norm, unique_ratio] + keyword_features)
+        # Use sentence transformer for semantic embeddings
+        embedding = self.embedding_model.encode(text, convert_to_numpy=True)
         
         self.embeddings_cache[text] = embedding
         return embedding
+    
+    def _calculate_area_similarity_boost(self, test_case: Dict[str, Any], bug_text: str) -> float:
+        """
+        Calculate a boost/penalty based on area alignment between test case and bug.
+        
+        Args:
+            test_case: Test case dictionary with 'area' field
+            bug_text: Combined bug description and repro steps
+            
+        Returns:
+            Boost value to add to similarity score (can be positive or negative)
+        """
+        test_area = test_case.get('area', '').lower()
+        bug_text_lower = bug_text.lower()
+        
+        if not test_area:
+            return 0.0
+        
+        # Extract area keywords (e.g., "Expert\Disbursements" -> ["expert", "disbursements"])
+        area_keywords = [kw.strip() for kw in test_area.replace('\\', ' ').replace('/', ' ').split()]
+        
+        # Check if bug text mentions any area keywords
+        matches = sum(1 for kw in area_keywords if kw and kw in bug_text_lower)
+        
+        if matches > 0:
+            # Boost if area is mentioned in bug description
+            return min(0.15, matches * 0.08)  # Cap at +0.15 boost
+        else:
+            # Small penalty if area not mentioned (might be cross-domain false positive)
+            return -0.05
+    
+    def _get_strictness_thresholds(self, strictness: str) -> Dict[str, float]:
+        """
+        Get similarity thresholds based on strictness level.
+        
+        Args:
+            strictness: 'lenient', 'moderate', or 'strict'
+            
+        Returns:
+            Dictionary with threshold values
+        """
+        thresholds = {
+            'lenient': {
+                'min_similarity': 0.55,
+                'csv_export': 0.50,
+                'claude_analysis': 0.60
+            },
+            'moderate': {
+                'min_similarity': 0.70,
+                'csv_export': 0.65,
+                'claude_analysis': 0.70
+            },
+            'strict': {
+                'min_similarity': 0.80,
+                'csv_export': 0.75,
+                'claude_analysis': 0.80
+            }
+        }
+        
+        return thresholds.get(strictness, thresholds['moderate'])
     
     def compute_test_case_embeddings(self) -> Dict[str, np.ndarray]:
         """
@@ -205,7 +244,9 @@ class TestCaseAgent:
         self,
         bug_description: str,
         repro_steps: str,
-        top_k: int = 15
+        top_k: int = 20,
+        min_similarity: float = 0.70,
+        apply_area_boost: bool = True
     ) -> List[Tuple[Dict[str, Any], float]]:
         """
         Find test cases similar to the bug description using semantic search.
@@ -213,10 +254,12 @@ class TestCaseAgent:
         Args:
             bug_description: Description of the bug
             repro_steps: Reproduction steps for the bug
-            top_k: Number of top similar test cases to return
+            top_k: Number of top similar test cases to return (default: 20)
+            min_similarity: Minimum similarity threshold (default: 0.70)
+            apply_area_boost: Whether to apply area-based similarity boosting (default: True)
             
         Returns:
-            List of (test_case, similarity_score) tuples
+            List of (test_case, similarity_score) tuples, filtered by min_similarity
         """
         # Combine bug info
         bug_text = f"{bug_description} {repro_steps}"
@@ -239,8 +282,15 @@ class TestCaseAgent:
                 similarity = dot_product / (norm_bug * norm_tc)
             else:
                 similarity = 0.0
-                
-            similarities.append((tc, float(similarity)))
+            
+            # Apply area-based boost/penalty
+            if apply_area_boost:
+                area_boost = self._calculate_area_similarity_boost(tc, bug_text)
+                similarity = min(1.0, similarity + area_boost)  # Cap at 1.0
+            
+            # Only include if above minimum threshold
+            if similarity >= min_similarity:
+                similarities.append((tc, float(similarity)))
         
         # Sort by similarity and return top k
         similarities.sort(key=lambda x: x[1], reverse=True)
@@ -472,7 +522,7 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
         self,
         results: Dict[str, Any],
         output_path: str,
-        similarity_threshold: float = 0.5
+        similarity_threshold: float = 0.70
     ) -> str:
         """
         Export analysis results to CSV format.
@@ -640,11 +690,13 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
         bug_description: str,
         repro_steps: str,
         code_changes: str,
-        top_k: int = 15,
+        top_k: int = 20,
         auto_load: bool = True,
         output_format: str = 'dict',
         csv_output_path: Optional[str] = None,
-        similarity_threshold: float = 0.5
+        similarity_threshold: float = 0.70,
+        strictness: Literal['lenient', 'moderate', 'strict'] = 'moderate',
+        apply_area_boost: bool = True
     ) -> Dict[str, Any]:
         """
         Complete analysis pipeline for a bug report.
@@ -653,11 +705,13 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
             bug_description: Description of the bug
             repro_steps: Steps to reproduce
             code_changes: Code changes made to fix the bug
-            top_k: Number of similar test cases to analyze
+            top_k: Number of similar test cases to analyze (default: 20)
             auto_load: If True and MCP is enabled, automatically detect and load test cases
             output_format: Output format - 'dict' or 'csv' (default: 'dict')
             csv_output_path: Path for CSV output (auto-generated if None and format='csv')
-            similarity_threshold: Minimum similarity score for CSV export (default: 0.5)
+            similarity_threshold: Minimum similarity score for CSV export (default: 0.70)
+            strictness: Filtering strictness level - 'lenient', 'moderate', or 'strict' (default: 'moderate')
+            apply_area_boost: Whether to apply area-based similarity boosting (default: True)
             
         Returns:
             Complete analysis including related tests, updates, and duplicates.
@@ -683,15 +737,42 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
                 }
             }
         
-        # Step 1: Find similar test cases using semantic search
-        similar_tests = self.find_similar_test_cases(bug_description, repro_steps, top_k)
+        # Get thresholds based on strictness level
+        thresholds = self._get_strictness_thresholds(strictness)
+        min_similarity = thresholds['min_similarity']
+        claude_threshold = thresholds['claude_analysis']
         
-        # Step 2: Analyze with Claude
-        claude_analysis = self.analyze_bug_with_claude(
-            bug_description, repro_steps, code_changes, similar_tests
+        print(f"\nUsing '{strictness}' strictness level:")
+        print(f"  - Minimum similarity: {min_similarity:.2f}")
+        print(f"  - Claude analysis threshold: {claude_threshold:.2f}")
+        print(f"  - Area boosting: {'enabled' if apply_area_boost else 'disabled'}\n")
+        
+        # Step 1: Find similar test cases using semantic search with strict filtering
+        similar_tests = self.find_similar_test_cases(
+            bug_description, 
+            repro_steps, 
+            top_k,
+            min_similarity=min_similarity,
+            apply_area_boost=apply_area_boost
         )
         
-        # Step 3: Detect duplicates among the similar tests
+        # Step 2: Apply additional filtering before Claude analysis
+        high_confidence_tests = [(tc, score) for tc, score in similar_tests if score >= claude_threshold]
+        
+        if not high_confidence_tests:
+            print(f"⚠ Warning: No test cases above Claude analysis threshold ({claude_threshold:.2f})")
+            if similar_tests:
+                print(f"  Found {len(similar_tests)} test cases above minimum threshold ({min_similarity:.2f})")
+                print(f"  Highest similarity: {similar_tests[0][1]:.3f}")
+                # Use the similar tests anyway but warn user
+                high_confidence_tests = similar_tests[:min(5, len(similar_tests))]  # Use top 5 at most
+        
+        # Step 3: Analyze with Claude using filtered test cases
+        claude_analysis = self.analyze_bug_with_claude(
+            bug_description, repro_steps, code_changes, high_confidence_tests
+        )
+        
+        # Step 4: Detect duplicates among the similar tests
         similar_test_cases = [tc for tc, _ in similar_tests]
         duplicates = self.detect_duplicates_with_claude(similar_test_cases)
         
@@ -709,7 +790,10 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
             'summary': {
                 'total_test_cases_analyzed': len(self.test_cases),
                 'similar_tests_found': len(similar_tests),
-                'potential_duplicates_found': len(duplicates)
+                'high_confidence_tests_analyzed': len(high_confidence_tests),
+                'potential_duplicates_found': len(duplicates),
+                'strictness_level': strictness,
+                'thresholds_used': thresholds
             }
         }
         

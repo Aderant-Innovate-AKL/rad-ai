@@ -129,7 +129,7 @@ def fetch_and_export_test_cases(app_family_name, area_path):
     }
     
     # Make the WIQL query
-    api_url = f"{TFS_URL}/{COLLECTION}/{PROJECT}/_apis/wit/wiql?api-version=4.1"
+    api_url = f"{TFS_BASE_URL}/{COLLECTION}/{PROJECT}/_apis/wit/wiql?api-version=4.1"
     
     try:
         response = requests.post(api_url, headers=headers, json=wiql_query, timeout=30)
@@ -145,7 +145,7 @@ def fetch_and_export_test_cases(app_family_name, area_path):
     
     if response.status_code == 200:
         result = response.json()
-        work_items = result.get("workItems", [])[:200]  # First 200 only
+        work_items = result.get("workItems", [])[:400]  # First 400 only
         
         if not work_items:
             print(f"⚠ No test cases found for {app_family_name}")
@@ -157,7 +157,7 @@ def fetch_and_export_test_cases(app_family_name, area_path):
         ids = [str(wi["id"]) for wi in work_items]
         ids_param = ",".join(ids)
         
-        details_url = f"{TFS_URL}/{COLLECTION}/{PROJECT}/_apis/wit/workitems?ids={ids_param}&fields=System.Id,System.Title,System.State,System.AreaPath,System.CreatedDate,System.Description,Microsoft.VSTS.TCM.Steps&api-version=4.1"
+        details_url = f"{TFS_BASE_URL}/{COLLECTION}/{PROJECT}/_apis/wit/workitems?ids={ids_param}&fields=System.Id,System.Title,System.State,System.AreaPath,System.CreatedDate,System.Description,Microsoft.VSTS.TCM.Steps&api-version=4.1"
         
         try:
             details_response = requests.get(details_url, headers=headers, timeout=30)
