@@ -20,10 +20,41 @@ interface FileChange {
 interface PRInfo {
   pr_number: number;
   title: string;
+  state: string;
   files_changed: FileChange[];
   total_files: number;
   total_additions: number;
   total_deletions: number;
+  summary: string;
+}
+
+interface TestCaseData {
+  id: string;
+  title: string;
+  state?: string;
+  area?: string;
+  description?: string;
+  steps?: string;
+}
+
+interface SimilarTest {
+  test_case: TestCaseData;
+  similarity_score: number;
+}
+
+interface AnalysisResponse {
+  similar_tests: SimilarTest[];
+  claude_analysis: {
+    related_tests?: Array<{ test_id: string; title: string; relevance: string; suggested_action: string }>;
+    new_test_suggestions?: Array<{ title: string; description: string; priority: string }>;
+    summary?: string;
+  };
+  duplicate_analysis: Array<{ test_ids: string[]; reason: string }>;
+  summary: {
+    total_tests_analyzed?: number;
+    related_tests_found?: number;
+    duplicates_found?: number;
+  };
 }
 
 export default function Home() {
@@ -35,6 +66,9 @@ export default function Home() {
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [bugError, setBugError] = useState<string | null>(null);
   const [prError, setPrError] = useState<string | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   const handleFetchBugInfo = async () => {
     if (!bugId.trim()) return;
@@ -89,12 +123,49 @@ export default function Home() {
   };
 
   const handleAnalyzeTestCases = async () => {
-    if (!bugId.trim()) return;
+    if (!bugInfo) {
+      setAnalysisError("Please fetch bug info first");
+      return;
+    }
+
     setIsLoading(true);
     setActiveAction("analyze");
-    // TODO: Implement API call for test case analysis
-    console.log("Analyzing test cases for:", bugId);
-    setTimeout(() => setIsLoading(false), 1000);
+    setAnalysisError(null);
+
+    try {
+      // First, fetch the test cases CSV from the backend
+      const csvResponse = await fetch("http://localhost:8000/get-test-cases-csv");
+      if (!csvResponse.ok) {
+        throw new Error("Failed to fetch test cases. Please ensure test cases are available.");
+      }
+      const csvBlob = await csvResponse.blob();
+      const csvFile = new File([csvBlob], "test_cases.csv", { type: "text/csv" });
+
+      const formData = new FormData();
+      formData.append("csv_file", csvFile);
+      formData.append("bug_description", bugInfo.description || bugInfo.title);
+      formData.append("repro_steps", bugInfo.repro_steps || "");
+      formData.append("code_changes", prInfo?.summary || "No code changes provided");
+      formData.append("top_k", "15");
+
+      const response = await fetch("http://localhost:8000/analyze-bug", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to analyze test cases");
+      }
+
+      const data = await response.json();
+      setAnalysisResult(data);
+      setShowModal(true);
+    } catch (err) {
+      setAnalysisError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatBugInfoDisplay = () => {
@@ -124,12 +195,20 @@ ${bugInfo.repro_steps || "No reproduction steps provided"}
       })
       .join("\n\n");
 
-    return `PR #${prInfo.pr_number}
+    // Clean up AI summary - remove markdown headers like "# PR Summary" or "# Pull Request Summary"
+    const cleanSummary = (prInfo.summary || "No AI summary available")
+      .replace(/^#\s*(PR|Pull Request)\s*Summary\s*\n*/i, "")
+      .trim();
+
+    return `PR #${prInfo.pr_number} (${prInfo.state})
 
 📌 TITLE
 ${prInfo.title}
 
-📊 SUMMARY
+🤖 AI SUMMARY (Anthropic Claude)
+${cleanSummary}
+
+📊 GITHUB STATS
 Files Changed: ${prInfo.total_files}
 Total Additions: +${prInfo.total_additions}
 Total Deletions: -${prInfo.total_deletions}
@@ -181,7 +260,9 @@ ${filesDisplay}
                   className="w-full rounded-xl border border-slate-600 bg-slate-900/50 px-5 py-4 text-lg text-white placeholder-slate-500 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
-                      handleFetchBugInfo();
+                      if (bugId.trim()) {
+                        handleFetchBugInfo();
+                      }
                     }
                   }}
                 />
@@ -204,12 +285,21 @@ ${filesDisplay}
                   className="w-full rounded-xl border border-slate-600 bg-slate-900/50 px-5 py-4 text-lg text-white placeholder-slate-500 outline-none transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
-                      handleFetchPRInfo();
+                      if (prId.trim()) {
+                        handleFetchPRInfo();
+                      }
                     }
                   }}
                 />
               </div>
             </div>
+
+            {/* Analysis Error Display */}
+            {analysisError && (
+              <div className="mb-4 rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-red-400">
+                ❌ {analysisError}
+              </div>
+            )}
 
             {/* Info Display Row */}
             <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -251,7 +341,7 @@ ${filesDisplay}
                     readOnly
                     value={
                       isLoading && activeAction === "fetchPR"
-                        ? "Loading PR information..."
+                        ? "Loading PR information and generating AI summary...\nThis may take a moment."
                         : prError
                           ? `❌ Error: ${prError}`
                           : prInfo
@@ -360,7 +450,7 @@ ${filesDisplay}
 
               <button
                 onClick={handleAnalyzeTestCases}
-                disabled={!bugId.trim() || isLoading}
+                disabled={!bugInfo || isLoading}
                 className="group flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-6 py-4 font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all hover:from-emerald-500 hover:to-emerald-400 hover:shadow-emerald-500/40 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
                 {isLoading && activeAction === "analyze" ? (
@@ -411,6 +501,176 @@ ${filesDisplay}
             </code>
           </p>
         </div>
+
+        {/* Analysis Results Modal */}
+        {showModal && analysisResult && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+            <div className="relative max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 shadow-2xl">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b border-slate-700 bg-slate-900/50 px-6 py-4">
+                <h2 className="text-xl font-bold text-white">
+                  🔍 Test Case Analysis Results
+                </h2>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-700 hover:text-white"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="max-h-[calc(90vh-120px)] overflow-y-auto p-6">
+                {/* Summary Stats */}
+                <div className="mb-6 grid grid-cols-3 gap-4">
+                  <div className="rounded-xl bg-blue-500/10 border border-blue-500/30 p-4 text-center">
+                    <div className="text-3xl font-bold text-blue-400">
+                      {analysisResult.summary?.total_tests_analyzed || analysisResult.similar_tests?.length || 0}
+                    </div>
+                    <div className="text-sm text-slate-400">Tests Analyzed</div>
+                  </div>
+                  <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-4 text-center">
+                    <div className="text-3xl font-bold text-emerald-400">
+                      {analysisResult.summary?.related_tests_found || analysisResult.claude_analysis?.related_tests?.length || 0}
+                    </div>
+                    <div className="text-sm text-slate-400">Related Tests</div>
+                  </div>
+                  <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-4 text-center">
+                    <div className="text-3xl font-bold text-amber-400">
+                      {analysisResult.summary?.duplicates_found || analysisResult.duplicate_analysis?.length || 0}
+                    </div>
+                    <div className="text-sm text-slate-400">Duplicates Found</div>
+                  </div>
+                </div>
+
+                {/* Similar Tests Table */}
+                {analysisResult.similar_tests && analysisResult.similar_tests.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="mb-3 text-lg font-semibold text-emerald-400">📋 Similar Test Cases</h3>
+                    <div className="overflow-x-auto rounded-xl border border-slate-700">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-900/50 text-slate-300">
+                          <tr>
+                            <th className="px-4 py-3 font-medium">ID</th>
+                            <th className="px-4 py-3 font-medium">Title</th>
+                            <th className="px-4 py-3 font-medium">Similarity</th>
+                            <th className="px-4 py-3 font-medium">State</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-700">
+                          {analysisResult.similar_tests.map((test, idx) => (
+                            <tr key={idx} className="bg-slate-800/50 hover:bg-slate-700/50">
+                              <td className="px-4 py-3 font-mono text-blue-400">{test.test_case.id}</td>
+                              <td className="px-4 py-3 text-slate-300">{test.test_case.title}</td>
+                              <td className="px-4 py-3">
+                                <span className={`rounded-full px-2 py-1 text-xs font-medium ${
+                                  test.similarity_score >= 0.8 ? "bg-emerald-500/20 text-emerald-400" :
+                                  test.similarity_score >= 0.6 ? "bg-amber-500/20 text-amber-400" :
+                                  "bg-slate-500/20 text-slate-400"
+                                }`}>
+                                  {(test.similarity_score * 100).toFixed(1)}%
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-slate-400">{test.test_case.state || "N/A"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Claude Analysis - Related Tests */}
+                {analysisResult.claude_analysis?.related_tests && analysisResult.claude_analysis.related_tests.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="mb-3 text-lg font-semibold text-purple-400">🤖 AI-Identified Related Tests</h3>
+                    <div className="overflow-x-auto rounded-xl border border-slate-700">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-900/50 text-slate-300">
+                          <tr>
+                            <th className="px-4 py-3 font-medium">Test ID</th>
+                            <th className="px-4 py-3 font-medium">Title</th>
+                            <th className="px-4 py-3 font-medium">Relevance</th>
+                            <th className="px-4 py-3 font-medium">Suggested Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-700">
+                          {analysisResult.claude_analysis.related_tests.map((test, idx) => (
+                            <tr key={idx} className="bg-slate-800/50 hover:bg-slate-700/50">
+                              <td className="px-4 py-3 font-mono text-purple-400">{test.test_id}</td>
+                              <td className="px-4 py-3 text-slate-300">{test.title}</td>
+                              <td className="px-4 py-3 text-slate-400">{test.relevance}</td>
+                              <td className="px-4 py-3">
+                                <span className="rounded-full bg-purple-500/20 px-2 py-1 text-xs text-purple-400">
+                                  {test.suggested_action}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* New Test Suggestions */}
+                {analysisResult.claude_analysis?.new_test_suggestions && analysisResult.claude_analysis.new_test_suggestions.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="mb-3 text-lg font-semibold text-amber-400">💡 Suggested New Tests</h3>
+                    <div className="overflow-x-auto rounded-xl border border-slate-700">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-900/50 text-slate-300">
+                          <tr>
+                            <th className="px-4 py-3 font-medium">Title</th>
+                            <th className="px-4 py-3 font-medium">Description</th>
+                            <th className="px-4 py-3 font-medium">Priority</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-700">
+                          {analysisResult.claude_analysis.new_test_suggestions.map((suggestion, idx) => (
+                            <tr key={idx} className="bg-slate-800/50 hover:bg-slate-700/50">
+                              <td className="px-4 py-3 font-medium text-slate-300">{suggestion.title}</td>
+                              <td className="px-4 py-3 text-slate-400">{suggestion.description}</td>
+                              <td className="px-4 py-3">
+                                <span className={`rounded-full px-2 py-1 text-xs font-medium ${
+                                  suggestion.priority === "high" ? "bg-red-500/20 text-red-400" :
+                                  suggestion.priority === "medium" ? "bg-amber-500/20 text-amber-400" :
+                                  "bg-slate-500/20 text-slate-400"
+                                }`}>
+                                  {suggestion.priority}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Summary */}
+                {analysisResult.claude_analysis?.summary && (
+                  <div className="rounded-xl border border-slate-700 bg-slate-900/50 p-4">
+                    <h3 className="mb-2 text-lg font-semibold text-slate-300">📝 Analysis Summary</h3>
+                    <p className="whitespace-pre-wrap text-slate-400">{analysisResult.claude_analysis.summary}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="border-t border-slate-700 bg-slate-900/50 px-6 py-4">
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="rounded-xl bg-slate-700 px-6 py-2 font-medium text-white transition-colors hover:bg-slate-600"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

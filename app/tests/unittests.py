@@ -86,13 +86,14 @@ class TestFetchPRInfoEndpoint(unittest.TestCase):
     
     def test_fetch_pr_7(self):
         """Test fetching PR #7."""
-        response = requests.get(f"{self.BASE_URL}/fetch-pr-info/7", timeout=30)
+        response = requests.get(f"{self.BASE_URL}/fetch-pr-info/7", timeout=60)
         self.assertEqual(response.status_code, 200, f"Expected 200, got {response.status_code}: {response.text}")
         
         data = response.json()
         self.assertEqual(data["pr_number"], 7)
         self.assertIn("title", data)
         self.assertIn("files_changed", data)
+        self.assertIn("summary", data)
         self.assertIsInstance(data["files_changed"], list)
         
         # Print PR info for verification
@@ -101,16 +102,18 @@ class TestFetchPRInfoEndpoint(unittest.TestCase):
         print(f"  Files changed: {data['total_files']}")
         for f in data["files_changed"]:
             print(f"    - {f['filename']} ({f['status']})")
+        print(f"\n  AI Summary:\n{data['summary']}")
     
     def test_fetch_pr_14(self):
         """Test fetching PR #14."""
-        response = requests.get(f"{self.BASE_URL}/fetch-pr-info/14", timeout=30)
+        response = requests.get(f"{self.BASE_URL}/fetch-pr-info/14", timeout=60)
         self.assertEqual(response.status_code, 200, f"Expected 200, got {response.status_code}: {response.text}")
         
         data = response.json()
         self.assertEqual(data["pr_number"], 14)
         self.assertIn("title", data)
         self.assertIn("files_changed", data)
+        self.assertIn("summary", data)
         self.assertIsInstance(data["files_changed"], list)
         
         # Print PR info for verification
@@ -119,16 +122,18 @@ class TestFetchPRInfoEndpoint(unittest.TestCase):
         print(f"  Files changed: {data['total_files']}")
         for f in data["files_changed"]:
             print(f"    - {f['filename']} ({f['status']})")
+        print(f"\n  AI Summary:\n{data['summary']}")
     
     def test_fetch_pr_21(self):
         """Test fetching PR #21."""
-        response = requests.get(f"{self.BASE_URL}/fetch-pr-info/21", timeout=30)
+        response = requests.get(f"{self.BASE_URL}/fetch-pr-info/21", timeout=60)
         self.assertEqual(response.status_code, 200, f"Expected 200, got {response.status_code}: {response.text}")
         
         data = response.json()
         self.assertEqual(data["pr_number"], 21)
         self.assertIn("title", data)
         self.assertIn("files_changed", data)
+        self.assertIn("summary", data)
         self.assertIsInstance(data["files_changed"], list)
         
         # Print PR info for verification
@@ -137,10 +142,102 @@ class TestFetchPRInfoEndpoint(unittest.TestCase):
         print(f"  Files changed: {data['total_files']}")
         for f in data["files_changed"]:
             print(f"    - {f['filename']} ({f['status']})")
+        print(f"\n  AI Summary:\n{data['summary']}")
     
     def test_fetch_pr_not_found(self):
         """Test fetching a non-existent PR returns 404."""
         response = requests.get(f"{self.BASE_URL}/fetch-pr-info/999999", timeout=30)
+        self.assertEqual(response.status_code, 404)
+
+
+class TestSummarizePREndpoint(unittest.TestCase):
+    """Test the /summarize-pr endpoint with real PR numbers."""
+    
+    BASE_URL = "http://localhost:8000"
+    
+    @classmethod
+    def setUpClass(cls):
+        """Check if the backend server is running."""
+        try:
+            response = requests.get(f"{cls.BASE_URL}/health", timeout=5)
+            cls.server_running = response.status_code == 200
+        except requests.exceptions.ConnectionError:
+            cls.server_running = False
+    
+    def setUp(self):
+        """Skip tests if server is not running."""
+        if not self.server_running:
+            self.skipTest("Backend server is not running at localhost:8000")
+    
+    def test_summarize_pr_7(self):
+        """Test summarizing PR #7."""
+        response = requests.get(f"{self.BASE_URL}/summarize-pr/7", timeout=60)
+        self.assertEqual(response.status_code, 200, f"Expected 200, got {response.status_code}: {response.text}")
+        
+        data = response.json()
+        self.assertEqual(data["pr_number"], 7)
+        self.assertIn("title", data)
+        self.assertIn("summary", data)
+        self.assertIn("files_changed", data)
+        self.assertIn("total_files", data)
+        self.assertIsInstance(data["files_changed"], list)
+        self.assertIsInstance(data["summary"], str)
+        self.assertGreater(len(data["summary"]), 0, "Summary should not be empty")
+        
+        # Print summary for verification
+        print(f"\nPR #7 Summary:")
+        print(f"  Title: {data['title']}")
+        print(f"  Total files: {data['total_files']}")
+        print(f"  Files: {', '.join(data['files_changed'][:5])}{'...' if len(data['files_changed']) > 5 else ''}")
+        print(f"\n  AI Summary:\n{data['summary']}")
+    
+    def test_summarize_pr_14(self):
+        """Test summarizing PR #14."""
+        response = requests.get(f"{self.BASE_URL}/summarize-pr/14", timeout=60)
+        self.assertEqual(response.status_code, 200, f"Expected 200, got {response.status_code}: {response.text}")
+        
+        data = response.json()
+        self.assertEqual(data["pr_number"], 14)
+        self.assertIn("title", data)
+        self.assertIn("summary", data)
+        self.assertIn("files_changed", data)
+        self.assertIn("total_files", data)
+        self.assertIsInstance(data["files_changed"], list)
+        self.assertIsInstance(data["summary"], str)
+        self.assertGreater(len(data["summary"]), 0, "Summary should not be empty")
+        
+        # Print summary for verification
+        print(f"\nPR #14 Summary:")
+        print(f"  Title: {data['title']}")
+        print(f"  Total files: {data['total_files']}")
+        print(f"  Files: {', '.join(data['files_changed'][:5])}{'...' if len(data['files_changed']) > 5 else ''}")
+        print(f"\n  AI Summary:\n{data['summary']}")
+    
+    def test_summarize_pr_21(self):
+        """Test summarizing PR #21."""
+        response = requests.get(f"{self.BASE_URL}/summarize-pr/21", timeout=60)
+        self.assertEqual(response.status_code, 200, f"Expected 200, got {response.status_code}: {response.text}")
+        
+        data = response.json()
+        self.assertEqual(data["pr_number"], 21)
+        self.assertIn("title", data)
+        self.assertIn("summary", data)
+        self.assertIn("files_changed", data)
+        self.assertIn("total_files", data)
+        self.assertIsInstance(data["files_changed"], list)
+        self.assertIsInstance(data["summary"], str)
+        self.assertGreater(len(data["summary"]), 0, "Summary should not be empty")
+        
+        # Print summary for verification
+        print(f"\nPR #21 Summary:")
+        print(f"  Title: {data['title']}")
+        print(f"  Total files: {data['total_files']}")
+        print(f"  Files: {', '.join(data['files_changed'][:5])}{'...' if len(data['files_changed']) > 5 else ''}")
+        print(f"\n  AI Summary:\n{data['summary']}")
+    
+    def test_summarize_pr_not_found(self):
+        """Test summarizing a non-existent PR returns 404."""
+        response = requests.get(f"{self.BASE_URL}/summarize-pr/999999", timeout=30)
         self.assertEqual(response.status_code, 404)
 
 
