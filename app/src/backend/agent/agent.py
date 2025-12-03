@@ -8,11 +8,17 @@ suggests updates, and detects duplicates using Anthropic Claude and semantic emb
 import os
 import csv
 import json
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from pathlib import Path
 import anthropic
 import numpy as np
 from dotenv import load_dotenv
+import sys
+
+# Add MCP server to path
+sys.path.append(str(Path(__file__).parent.parent))
+
+from mcp.test_case_server import get_server, handle_tool_call
 
 # Load environment variables
 load_dotenv()
@@ -26,12 +32,13 @@ class TestCaseAgent:
     and sentence transformers for semantic similarity matching.
     """
     
-    def __init__(self, api_key: str = None):
+    def __init__(self, api_key: str = None, use_mcp: bool = True):
         """
         Initialize the agent with necessary models and configurations.
         
         Args:
             api_key: Anthropic API key (defaults to ANTHROPIC_API_KEY env var)
+            use_mcp: Whether to use MCP server for test case access (default: True)
         """
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
         if not self.api_key:
@@ -40,14 +47,22 @@ class TestCaseAgent:
         self.client = anthropic.Anthropic(api_key=self.api_key)
         self.model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5")
         
+        # MCP integration
+        self.use_mcp = use_mcp
+        self.mcp_server = get_server() if use_mcp else None
+        
         # Cache for embeddings
         self.embeddings_cache = {}
         self.test_cases = []
-        print("Agent initialized successfully")
+        
+        print(f"Agent initialized successfully (MCP: {'enabled' if use_mcp else 'disabled'})")
         
     def load_test_cases_from_csv(self, csv_path: str) -> List[Dict[str, Any]]:
         """
         Load test cases from a CSV file.
+        
+        NOTE: This method is kept for backward compatibility.
+        When MCP is enabled, use detect_and_load_test_cases() instead.
         
         Args:
             csv_path: Path to the CSV file containing test cases
@@ -73,6 +88,56 @@ class TestCaseAgent:
         self.test_cases = test_cases
         print(f"Loaded {len(test_cases)} test cases")
         return test_cases
+    
+    def detect_and_load_test_cases(
+        self,
+        bug_description: str,
+        repro_steps: str = "",
+        force_all: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Detect relevant areas and load test cases automatically using MCP server.
+        
+        Args:
+            bug_description: Description of the bug
+            repro_steps: Reproduction steps for the bug
+            force_all: If True, load all test cases regardless of detection
+            
+        Returns:
+            Dictionary with detection results and loaded test cases
+        """
+        if not self.use_mcp or not self.mcp_server:
+            raise RuntimeError("MCP is not enabled. Use load_test_cases_from_csv() instead.")
+        
+        # Detect relevant areas
+        detection_result = self.mcp_server.detect_relevant_areas(bug_description, repro_steps)
+        
+        # Determine which areas to load
+        if force_all or not detection_result['detected_areas']:
+            # Load all test cases
+            print("Loading all test cases...")
+            from agent.area_config import get_all_areas
+            areas_to_load = get_all_areas()
+        else:
+            # Load from top detected areas (top 2 if both have decent confidence)
+            detected = detection_result['detected_areas']
+            areas_to_load = [detected[0]['area_name']]
+            
+            if len(detected) > 1 and detected[1]['confidence'] > 0.15:
+                areas_to_load.append(detected[1]['area_name'])
+        
+        print(f"Loading test cases from: {', '.join(areas_to_load)}")
+        
+        # Load test cases from selected areas
+        search_result = self.mcp_server.search_by_area(areas_to_load)
+        self.test_cases = search_result['test_cases']
+        
+        return {
+            'detection': detection_result,
+            'areas_loaded': areas_to_load,
+            'test_cases_count': len(self.test_cases),
+            'recommendation': detection_result['recommendation']
+        }
     
     def get_embedding(self, text: str) -> np.ndarray:
         """
@@ -388,7 +453,8 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
         bug_description: str,
         repro_steps: str,
         code_changes: str,
-        top_k: int = 15
+        top_k: int = 15,
+        auto_load: bool = True
     ) -> Dict[str, Any]:
         """
         Complete analysis pipeline for a bug report.
@@ -398,10 +464,31 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
             repro_steps: Steps to reproduce
             code_changes: Code changes made to fix the bug
             top_k: Number of similar test cases to analyze
+            auto_load: If True and MCP is enabled, automatically detect and load test cases
             
         Returns:
             Complete analysis including related tests, updates, and duplicates
         """
+        # Auto-load test cases if MCP is enabled and no test cases are loaded
+        if auto_load and self.use_mcp and len(self.test_cases) == 0:
+            print("\nAuto-detecting relevant test cases...")
+            load_result = self.detect_and_load_test_cases(bug_description, repro_steps)
+            print(f"✓ Loaded {load_result['test_cases_count']} test cases from {len(load_result['areas_loaded'])} area(s)")
+            print(f"  Recommendation: {load_result['recommendation']}\n")
+        
+        if len(self.test_cases) == 0:
+            return {
+                'error': 'No test cases loaded. Use detect_and_load_test_cases() or load_test_cases_from_csv() first.',
+                'similar_tests': [],
+                'claude_analysis': {},
+                'duplicate_analysis': [],
+                'summary': {
+                    'total_test_cases_analyzed': 0,
+                    'similar_tests_found': 0,
+                    'potential_duplicates_found': 0
+                }
+            }
+        
         # Step 1: Find similar test cases using semantic search
         similar_tests = self.find_similar_test_cases(bug_description, repro_steps, top_k)
         
@@ -435,12 +522,8 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
 
 # Example usage
 if __name__ == "__main__":
-    # Initialize agent
-    agent = TestCaseAgent()
-    
-    # Load test cases
-    csv_path = "../../../test_cases_with_descriptions_expert_disbursements.csv"
-    agent.load_test_cases_from_csv(csv_path)
+    # Initialize agent with MCP enabled
+    agent = TestCaseAgent(use_mcp=True)
     
     # Example bug report
     bug_description = "Users cannot post disbursements when currency override is enabled"
@@ -453,8 +536,8 @@ if __name__ == "__main__":
     """
     code_changes = "Fixed currency validation logic in posting process to properly handle currency overrides"
     
-    # Run analysis
-    print("\nAnalyzing bug report...")
+    # Run analysis - test cases will be automatically detected and loaded
+    print("\nAnalyzing bug report with automatic test case detection...")
     results = agent.analyze_bug_report(bug_description, repro_steps, code_changes)
     
     print("\n" + "="*80)
