@@ -28,12 +28,18 @@ interface PRInfo {
   summary: string;
 }
 
-interface SimilarTest {
+interface TestCaseData {
   id: string;
   title: string;
-  similarity_score: number;
   state?: string;
   area?: string;
+  description?: string;
+  steps?: string;
+}
+
+interface SimilarTest {
+  test_case: TestCaseData;
+  similarity_score: number;
 }
 
 interface AnalysisResponse {
@@ -253,7 +259,7 @@ ${filesDisplay}
                   placeholder="Enter bug ID (e.g., 12345)"
                   className="w-full rounded-xl border border-slate-600 bg-slate-900/50 px-5 py-4 text-lg text-white placeholder-slate-500 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === "Tab") {
+                    if (e.key === "Enter") {
                       if (bugId.trim()) {
                         handleFetchBugInfo();
                       }
@@ -278,7 +284,7 @@ ${filesDisplay}
                   placeholder="Enter PR number (e.g., 42)"
                   className="w-full rounded-xl border border-slate-600 bg-slate-900/50 px-5 py-4 text-lg text-white placeholder-slate-500 outline-none transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === "Tab") {
+                    if (e.key === "Enter") {
                       if (prId.trim()) {
                         handleFetchPRInfo();
                       }
@@ -556,8 +562,8 @@ ${filesDisplay}
                         <tbody className="divide-y divide-slate-700">
                           {analysisResult.similar_tests.map((test, idx) => (
                             <tr key={idx} className="bg-slate-800/50 hover:bg-slate-700/50">
-                              <td className="px-4 py-3 font-mono text-blue-400">{test.id}</td>
-                              <td className="px-4 py-3 text-slate-300">{test.title}</td>
+                              <td className="px-4 py-3 font-mono text-blue-400">{test.test_case.id}</td>
+                              <td className="px-4 py-3 text-slate-300">{test.test_case.title}</td>
                               <td className="px-4 py-3">
                                 <span className={`rounded-full px-2 py-1 text-xs font-medium ${
                                   test.similarity_score >= 0.8 ? "bg-emerald-500/20 text-emerald-400" :
@@ -567,7 +573,7 @@ ${filesDisplay}
                                   {(test.similarity_score * 100).toFixed(1)}%
                                 </span>
                               </td>
-                              <td className="px-4 py-3 text-slate-400">{test.state || "N/A"}</td>
+                              <td className="px-4 py-3 text-slate-400">{test.test_case.state || "N/A"}</td>
                             </tr>
                           ))}
                         </tbody>

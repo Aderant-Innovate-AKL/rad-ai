@@ -8,11 +8,17 @@ suggests updates, and detects duplicates using Anthropic Claude and semantic emb
 import os
 import csv
 import json
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from pathlib import Path
 import anthropic
 import numpy as np
 from dotenv import load_dotenv
+import sys
+
+# Add MCP server to path
+sys.path.append(str(Path(__file__).parent.parent))
+
+from mcp.test_case_server import get_server, handle_tool_call
 
 # Load environment variables
 load_dotenv()
@@ -26,12 +32,13 @@ class TestCaseAgent:
     and sentence transformers for semantic similarity matching.
     """
     
-    def __init__(self, api_key: str = None):
+    def __init__(self, api_key: str = None, use_mcp: bool = True):
         """
         Initialize the agent with necessary models and configurations.
         
         Args:
             api_key: Anthropic API key (defaults to ANTHROPIC_API_KEY env var)
+            use_mcp: Whether to use MCP server for test case access (default: True)
         """
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
         if not self.api_key:
@@ -40,14 +47,22 @@ class TestCaseAgent:
         self.client = anthropic.Anthropic(api_key=self.api_key)
         self.model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5")
         
+        # MCP integration
+        self.use_mcp = use_mcp
+        self.mcp_server = get_server() if use_mcp else None
+        
         # Cache for embeddings
         self.embeddings_cache = {}
         self.test_cases = []
-        print("Agent initialized successfully")
+        
+        print(f"Agent initialized successfully (MCP: {'enabled' if use_mcp else 'disabled'})")
         
     def load_test_cases_from_csv(self, csv_path: str) -> List[Dict[str, Any]]:
         """
         Load test cases from a CSV file.
+        
+        NOTE: This method is kept for backward compatibility.
+        When MCP is enabled, use detect_and_load_test_cases() instead.
         
         Args:
             csv_path: Path to the CSV file containing test cases
@@ -73,6 +88,56 @@ class TestCaseAgent:
         self.test_cases = test_cases
         print(f"Loaded {len(test_cases)} test cases")
         return test_cases
+    
+    def detect_and_load_test_cases(
+        self,
+        bug_description: str,
+        repro_steps: str = "",
+        force_all: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Detect relevant areas and load test cases automatically using MCP server.
+        
+        Args:
+            bug_description: Description of the bug
+            repro_steps: Reproduction steps for the bug
+            force_all: If True, load all test cases regardless of detection
+            
+        Returns:
+            Dictionary with detection results and loaded test cases
+        """
+        if not self.use_mcp or not self.mcp_server:
+            raise RuntimeError("MCP is not enabled. Use load_test_cases_from_csv() instead.")
+        
+        # Detect relevant areas
+        detection_result = self.mcp_server.detect_relevant_areas(bug_description, repro_steps)
+        
+        # Determine which areas to load
+        if force_all or not detection_result['detected_areas']:
+            # Load all test cases
+            print("Loading all test cases...")
+            from agent.area_config import get_all_areas
+            areas_to_load = get_all_areas()
+        else:
+            # Load from top detected areas (top 2 if both have decent confidence)
+            detected = detection_result['detected_areas']
+            areas_to_load = [detected[0]['area_name']]
+            
+            if len(detected) > 1 and detected[1]['confidence'] > 0.15:
+                areas_to_load.append(detected[1]['area_name'])
+        
+        print(f"Loading test cases from: {', '.join(areas_to_load)}")
+        
+        # Load test cases from selected areas
+        search_result = self.mcp_server.search_by_area(areas_to_load)
+        self.test_cases = search_result['test_cases']
+        
+        return {
+            'detection': detection_result,
+            'areas_loaded': areas_to_load,
+            'test_cases_count': len(self.test_cases),
+            'recommendation': detection_result['recommendation']
+        }
     
     def get_embedding(self, text: str) -> np.ndarray:
         """
@@ -277,14 +342,14 @@ Provide your response in JSON format with these exact keys: related_tests, sugge
     def detect_duplicates_with_claude(
         self,
         test_cases: List[Dict[str, Any]] = None,
-        similarity_threshold: float = 0.75
+        similarity_threshold: float = 0.90
     ) -> List[Dict[str, Any]]:
         """
         Detect duplicate or highly similar test cases using embeddings and Claude.
         
         Args:
             test_cases: List of test cases to analyze (defaults to all loaded tests)
-            similarity_threshold: Minimum similarity score to consider as potential duplicate
+            similarity_threshold: Minimum similarity score to consider as potential duplicate (default: 0.90)
             
         Returns:
             List of duplicate groups with analysis
@@ -374,7 +439,27 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
                 if start_idx != -1 and end_idx > start_idx:
                     json_str = response_text[start_idx:end_idx]
                     claude_analysis = json.loads(json_str)
-                    return claude_analysis.get('duplicate_groups', [])
+                    duplicate_groups = claude_analysis.get('duplicate_groups', [])
+                    
+                    # Enrich the duplicate groups with actual test case IDs
+                    enriched_groups = []
+                    for group in duplicate_groups:
+                        pair_id = group.get('pair_id')
+                        if pair_id and pair_id <= len(potential_duplicates):
+                            # Get the actual pair data
+                            pair = potential_duplicates[pair_id - 1]  # pair_id is 1-indexed
+                            enriched_group = {
+                                'pair_id': pair_id,
+                                'classification': group.get('classification', 'UNKNOWN'),
+                                'reasoning': group.get('reasoning', ''),
+                                'recommendation': group.get('recommendation', ''),
+                                'test_case_1_id': pair['test_case_1']['id'],
+                                'test_case_2_id': pair['test_case_2']['id'],
+                                'similarity_score': pair['similarity_score']
+                            }
+                            enriched_groups.append(enriched_group)
+                    
+                    return enriched_groups if enriched_groups else duplicate_groups
             except json.JSONDecodeError:
                 pass
             
@@ -383,12 +468,183 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
         
         return []
     
+    def export_results_to_csv(
+        self,
+        results: Dict[str, Any],
+        output_path: str,
+        similarity_threshold: float = 0.5
+    ) -> str:
+        """
+        Export analysis results to CSV format.
+        
+        Args:
+            results: Results from analyze_bug_report()
+            output_path: Path where CSV file should be saved
+            similarity_threshold: Minimum similarity score to include (default: 0.5)
+            
+        Returns:
+            Path to the created CSV file
+        """
+        csv_rows = []
+        
+        # Build a lookup for duplicate relationships
+        duplicate_map = {}  # test_case_id -> {'related': list, 'classifications': list}
+        duplicate_analysis = results.get('duplicate_analysis', [])
+        
+        for dup in duplicate_analysis:
+            if isinstance(dup, dict):
+                # Check if this has enriched data with test case IDs
+                if 'test_case_1_id' in dup and 'test_case_2_id' in dup:
+                    tc1_id = str(dup['test_case_1_id'])
+                    tc2_id = str(dup['test_case_2_id'])
+                    classification = dup.get('classification', 'UNKNOWN')
+                    
+                    # Initialize entries if they don't exist
+                    if tc1_id not in duplicate_map:
+                        duplicate_map[tc1_id] = {'related': [], 'classifications': []}
+                    if tc2_id not in duplicate_map:
+                        duplicate_map[tc2_id] = {'related': [], 'classifications': []}
+                    
+                    # Add relationship if not already present
+                    if tc2_id not in duplicate_map[tc1_id]['related']:
+                        duplicate_map[tc1_id]['related'].append(tc2_id)
+                        duplicate_map[tc1_id]['classifications'].append(classification)
+                    if tc1_id not in duplicate_map[tc2_id]['related']:
+                        duplicate_map[tc2_id]['related'].append(tc1_id)
+                        duplicate_map[tc2_id]['classifications'].append(classification)
+                        
+                elif 'test_case_1' in dup and 'test_case_2' in dup:
+                    # This is raw similarity data (fallback response from detect_duplicates)
+                    tc1_id = str(dup['test_case_1']['id'])
+                    tc2_id = str(dup['test_case_2']['id'])
+                    classification = 'HIGH SIMILARITY'
+                    
+                    if tc1_id not in duplicate_map:
+                        duplicate_map[tc1_id] = {'related': [], 'classifications': []}
+                    if tc2_id not in duplicate_map:
+                        duplicate_map[tc2_id] = {'related': [], 'classifications': []}
+                    
+                    if tc2_id not in duplicate_map[tc1_id]['related']:
+                        duplicate_map[tc1_id]['related'].append(tc2_id)
+                        duplicate_map[tc1_id]['classifications'].append(classification)
+                    if tc1_id not in duplicate_map[tc2_id]['related']:
+                        duplicate_map[tc2_id]['related'].append(tc1_id)
+                        duplicate_map[tc2_id]['classifications'].append(classification)
+        
+        # Build lookup for Claude's analysis
+        claude_analysis = results.get('claude_analysis', {})
+        related_tests_lookup = {}
+        suggested_updates_lookup = {}
+        
+        for rt in claude_analysis.get('related_tests', []):
+            if isinstance(rt, dict):
+                # Handle various possible key names for test case ID
+                tc_id = rt.get('id') or rt.get('test_id') or rt.get('test_case_id')
+                if tc_id:
+                    related_tests_lookup[str(tc_id)] = {
+                        'confidence': rt.get('confidence', rt.get('confidence_score', '')),
+                        'reason': rt.get('reason', rt.get('reasoning', rt.get('explanation', '')))
+                    }
+        
+        for su in claude_analysis.get('suggested_updates', []):
+            if isinstance(su, dict):
+                tc_id = su.get('test_case_id') or su.get('test_id') or su.get('id')
+                if tc_id:
+                    suggested_updates_lookup[str(tc_id)] = su.get('suggested_change', su.get('update', su.get('change', '')))
+        
+        # Process each similar test case
+        for item in results.get('similar_tests', []):
+            test_case = item['test_case']
+            similarity_score = item['similarity_score']
+            
+            # Only include test cases above threshold
+            if similarity_score < similarity_threshold:
+                continue
+            
+            tc_id = str(test_case['id'])
+            
+            # Get duplicate information - show related IDs for TRUE DUPLICATES and OVERLAPPING
+            related_ids = ''
+            duplicate_classification = 'DISTINCT'  # Default to DISTINCT if not analyzed
+            if tc_id in duplicate_map:
+                classifications = duplicate_map[tc_id]['classifications']
+                # Combine unique classifications
+                unique_classifications = list(set(classifications))
+                duplicate_classification = ', '.join(unique_classifications) if unique_classifications else 'DISTINCT'
+                
+                # Include related IDs if any classification is OVERLAPPING or TRUE DUPLICATES
+                show_related = any('OVERLAPPING' in c.upper() or 'TRUE DUPLICATE' in c.upper() 
+                                  for c in classifications)
+                if show_related:
+                    related_ids = ', '.join(duplicate_map[tc_id]['related'])
+            
+            # Get Claude analysis
+            claude_reason = ''
+            if tc_id in related_tests_lookup:
+                claude_reason = related_tests_lookup[tc_id]['reason']
+            
+            suggested_update = suggested_updates_lookup.get(tc_id, '')
+            
+            # Build reasoning: combine similarity-based reason with Claude's analysis
+            reasoning_parts = []
+            
+            # Add similarity-based reasoning
+            if similarity_score >= 0.7:
+                reasoning_parts.append(f"High semantic similarity ({similarity_score:.3f})")
+            elif similarity_score >= 0.5:
+                reasoning_parts.append(f"Moderate semantic similarity ({similarity_score:.3f})")
+            else:
+                reasoning_parts.append(f"Related by semantic analysis ({similarity_score:.3f})")
+            
+            # Add Claude's reasoning if available
+            if claude_reason:
+                reasoning_parts.append(claude_reason)
+            
+            combined_reasoning = '; '.join(reasoning_parts)
+            
+            # Create CSV row
+            csv_rows.append({
+                'Test Case ID': tc_id,
+                'Title': test_case.get('title', ''),
+                'State': test_case.get('state', ''),
+                'Area': test_case.get('area', ''),
+                'Created Date': test_case.get('created_date', ''),
+                'Similarity Score': f"{similarity_score:.4f}",
+                'Reasoning': combined_reasoning,
+                'Duplicate Classification': duplicate_classification,
+                'Related Test IDs': related_ids,
+                'Suggested Update': suggested_update
+            })
+        
+        # Write to CSV
+        if csv_rows:
+            fieldnames = [
+                'Test Case ID', 'Title', 'State', 'Area', 'Created Date',
+                'Similarity Score', 'Reasoning', 'Duplicate Classification', 
+                'Related Test IDs', 'Suggested Update'
+            ]
+            
+            with open(output_path, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(csv_rows)
+            
+            print(f"\n✓ Exported {len(csv_rows)} test cases to: {output_path}")
+            return output_path
+        else:
+            print(f"\n⚠ No test cases above similarity threshold ({similarity_threshold})")
+            return None
+    
     def analyze_bug_report(
         self,
         bug_description: str,
         repro_steps: str,
         code_changes: str,
-        top_k: int = 15
+        top_k: int = 15,
+        auto_load: bool = True,
+        output_format: str = 'dict',
+        csv_output_path: Optional[str] = None,
+        similarity_threshold: float = 0.5
     ) -> Dict[str, Any]:
         """
         Complete analysis pipeline for a bug report.
@@ -398,10 +654,35 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
             repro_steps: Steps to reproduce
             code_changes: Code changes made to fix the bug
             top_k: Number of similar test cases to analyze
+            auto_load: If True and MCP is enabled, automatically detect and load test cases
+            output_format: Output format - 'dict' or 'csv' (default: 'dict')
+            csv_output_path: Path for CSV output (auto-generated if None and format='csv')
+            similarity_threshold: Minimum similarity score for CSV export (default: 0.5)
             
         Returns:
-            Complete analysis including related tests, updates, and duplicates
+            Complete analysis including related tests, updates, and duplicates.
+            If output_format='csv', also includes 'csv_path' key with path to exported file.
         """
+        # Auto-load test cases if MCP is enabled and no test cases are loaded
+        if auto_load and self.use_mcp and len(self.test_cases) == 0:
+            print("\nAuto-detecting relevant test cases...")
+            load_result = self.detect_and_load_test_cases(bug_description, repro_steps)
+            print(f"✓ Loaded {load_result['test_cases_count']} test cases from {len(load_result['areas_loaded'])} area(s)")
+            print(f"  Recommendation: {load_result['recommendation']}\n")
+        
+        if len(self.test_cases) == 0:
+            return {
+                'error': 'No test cases loaded. Use detect_and_load_test_cases() or load_test_cases_from_csv() first.',
+                'similar_tests': [],
+                'claude_analysis': {},
+                'duplicate_analysis': [],
+                'summary': {
+                    'total_test_cases_analyzed': 0,
+                    'similar_tests_found': 0,
+                    'potential_duplicates_found': 0
+                }
+            }
+        
         # Step 1: Find similar test cases using semantic search
         similar_tests = self.find_similar_test_cases(bug_description, repro_steps, top_k)
         
@@ -415,7 +696,7 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
         duplicates = self.detect_duplicates_with_claude(similar_test_cases)
         
         # Combine results
-        return {
+        results = {
             'similar_tests': [
                 {
                     'test_case': tc,
@@ -431,16 +712,25 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
                 'potential_duplicates_found': len(duplicates)
             }
         }
+        
+        # Export to CSV if requested
+        if output_format == 'csv':
+            if csv_output_path is None:
+                # Auto-generate filename with timestamp
+                from datetime import datetime
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                csv_output_path = f"bug_analysis_results_{timestamp}.csv"
+            
+            csv_path = self.export_results_to_csv(results, csv_output_path, similarity_threshold)
+            results['csv_path'] = csv_path
+        
+        return results
 
 
 # Example usage
 if __name__ == "__main__":
-    # Initialize agent
-    agent = TestCaseAgent()
-    
-    # Load test cases
-    csv_path = "../../../test_cases_with_descriptions_expert_disbursements.csv"
-    agent.load_test_cases_from_csv(csv_path)
+    # Initialize agent with MCP enabled
+    agent = TestCaseAgent(use_mcp=True)
     
     # Example bug report
     bug_description = "Users cannot post disbursements when currency override is enabled"
@@ -453,8 +743,8 @@ if __name__ == "__main__":
     """
     code_changes = "Fixed currency validation logic in posting process to properly handle currency overrides"
     
-    # Run analysis
-    print("\nAnalyzing bug report...")
+    # Run analysis - test cases will be automatically detected and loaded
+    print("\nAnalyzing bug report with automatic test case detection...")
     results = agent.analyze_bug_report(bug_description, repro_steps, code_changes)
     
     print("\n" + "="*80)

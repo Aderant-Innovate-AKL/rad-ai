@@ -100,40 +100,82 @@ headers = {
     "Content-Type": "application/json"
 }
 
-# WIQL query for test cases in specific area
-wiql_query = {
-    "query": """
-        SELECT [System.Id], [System.Title], [System.State], [System.CreatedDate], [System.Description], [Microsoft.VSTS.TCM.Steps]
-        FROM WorkItems
-        WHERE [System.TeamProject] = 'ExpertSuite'
-          AND [System.WorkItemType] = 'Test Case'
-          AND [System.AreaPath] UNDER 'ExpertSuite\\Financials\\Expert Disbursements'
-        ORDER BY [System.Id] ASC
-    """
+# Define app families to query
+APP_FAMILIES = {
+    "Expert Disbursements": "ExpertSuite\\Financials\\Expert Disbursements",
+    "Billing": "ExpertSuite\\Billing",
+    "Accounts Payable": "ExpertSuite\\Financials\\Accounts Payable",
+    "Collections": "ExpertSuite\\Financials\\Collections",
+    "Infrastructure": "ExpertSuite\\Infrastructure"
 }
 
-# Make the WIQL query
-api_url = f"{TFS_BASE_URL}/{COLLECTION}/{PROJECT}/_apis/wit/wiql?api-version=4.1"
-response = requests.post(api_url, headers=headers, json=wiql_query)
-
-if response.status_code == 200:
-    result = response.json()
-    work_items = result.get("workItems", [])[:200]  # First 200 only
-    print(f"Fetching first {len(work_items)} test cases...")
+def fetch_and_export_test_cases(app_family_name, area_path):
+    """Fetch test cases for a specific area path and export to CSV"""
+    print(f"\n{'='*100}")
+    print(f"Processing: {app_family_name}")
+    print(f"Area Path: {area_path}")
+    print(f"{'='*100}")
     
-    if work_items:
-        # Get details for first 100
+    # WIQL query for test cases in specific area
+    wiql_query = {
+        "query": f"""
+            SELECT [System.Id], [System.Title], [System.State], [System.CreatedDate], [System.Description], [Microsoft.VSTS.TCM.Steps]
+            FROM WorkItems
+            WHERE [System.TeamProject] = 'ExpertSuite'
+              AND [System.WorkItemType] = 'Test Case'
+              AND [System.AreaPath] UNDER '{area_path}'
+            ORDER BY [System.Id] ASC
+        """
+    }
+    
+    # Make the WIQL query
+    api_url = f"{TFS_URL}/{COLLECTION}/{PROJECT}/_apis/wit/wiql?api-version=4.1"
+    
+    try:
+        response = requests.post(api_url, headers=headers, json=wiql_query, timeout=30)
+    except requests.exceptions.Timeout:
+        print(f"✗ Connection timeout - unable to reach TFS server")
+        return 0
+    except requests.exceptions.ConnectionError as e:
+        print(f"✗ Connection error: {str(e)[:100]}")
+        return 0
+    except Exception as e:
+        print(f"✗ Unexpected error: {str(e)[:100]}")
+        return 0
+    
+    if response.status_code == 200:
+        result = response.json()
+        work_items = result.get("workItems", [])[:200]  # First 200 only
+        
+        if not work_items:
+            print(f"⚠ No test cases found for {app_family_name}")
+            return 0
+        
+        print(f"Found {len(work_items)} test cases...")
+        
+        # Get details
         ids = [str(wi["id"]) for wi in work_items]
         ids_param = ",".join(ids)
         
-        details_url = f"{TFS_BASE_URL}/{COLLECTION}/{PROJECT}/_apis/wit/workitems?ids={ids_param}&fields=System.Id,System.Title,System.State,System.AreaPath,System.CreatedDate,System.Description,Microsoft.VSTS.TCM.Steps&api-version=4.1"
-        details_response = requests.get(details_url, headers=headers)
+        details_url = f"{TFS_URL}/{COLLECTION}/{PROJECT}/_apis/wit/workitems?ids={ids_param}&fields=System.Id,System.Title,System.State,System.AreaPath,System.CreatedDate,System.Description,Microsoft.VSTS.TCM.Steps&api-version=4.1"
+        
+        try:
+            details_response = requests.get(details_url, headers=headers, timeout=30)
+        except requests.exceptions.Timeout:
+            print(f"✗ Timeout getting test case details")
+            return 0
+        except Exception as e:
+            print(f"✗ Error getting details: {str(e)[:100]}")
+            return 0
         
         if details_response.status_code == 200:
             test_cases = details_response.json().get("value", [])
             
+            # Create safe filename
+            safe_filename = app_family_name.lower().replace(" ", "_")
+            csv_file = f"test_cases_{safe_filename}.csv"
+            
             # Write to CSV
-            csv_file = "test_cases_with_descriptions_expert_disbursements.csv"
             with open(csv_file, "w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 # Header
@@ -160,17 +202,64 @@ if response.status_code == 200:
                         steps
                     ])
             
-            print(f"\n✓ Exported {len(test_cases)} test cases to {csv_file}")
-            print(f"\nFirst 5 entries with descriptions:")
-            print("-" * 100)
-            for tc in test_cases[:5]:
-                fields = tc.get("fields", {})
-                description = strip_html(fields.get("System.Description", ""))
-                desc_preview = description[:50] + "..." if len(description) > 50 else description
-                print(f"{fields.get('System.Id')} | {fields.get('System.Title')[:40]} | {desc_preview}")
+            print(f"✓ Exported {len(test_cases)} test cases to {csv_file}")
+            
+            # Show sample
+            if test_cases:
+                print(f"\nFirst 3 entries:")
+                print("-" * 100)
+                for tc in test_cases[:3]:
+                    fields = tc.get("fields", {})
+                    description = strip_html(fields.get("System.Description", ""))
+                    desc_preview = description[:50] + "..." if len(description) > 50 else description
+                    title_preview = fields.get('System.Title', '')[:40] + "..." if len(fields.get('System.Title', '')) > 40 else fields.get('System.Title', '')
+                    print(f"{fields.get('System.Id')} | {title_preview} | {desc_preview}")
+            
+            return len(test_cases)
         else:
-            print(f"Error getting details: {details_response.status_code}")
-else:
-    print(f"Error: {response.status_code}")
+            print(f"✗ Error getting details: {details_response.status_code}")
+            return 0
+    else:
+        print(f"✗ Error querying test cases: {response.status_code}")
+        if response.status_code == 401:
+            print("  Authentication failed. Please check your PAT token.")
+        return 0
+
+# Main execution
+print("\n" + "="*100)
+print("TFS Test Case Extractor - Multiple App Families")
+print("="*100)
+
+total_test_cases = 0
+successful_families = 0
+failed_families = []
+
+for app_family_name, area_path in APP_FAMILIES.items():
+    count = fetch_and_export_test_cases(app_family_name, area_path)
+    if count > 0:
+        successful_families += 1
+        total_test_cases += count
+    else:
+        failed_families.append(app_family_name)
+
+# Summary
+print("\n" + "="*100)
+print("SUMMARY")
+print("="*100)
+print(f"App families processed: {successful_families}/{len(APP_FAMILIES)}")
+print(f"Total test cases exported: {total_test_cases}")
+print(f"\nCSV files generated:")
+for app_family_name in APP_FAMILIES.keys():
+    safe_filename = app_family_name.lower().replace(" ", "_")
+    print(f"  - test_cases_{safe_filename}.csv")
+
+if failed_families:
+    print(f"\n⚠ Failed to process: {', '.join(failed_families)}")
+    print("\nPossible reasons:")
+    print("  - Network connectivity issues (VPN required?)")
+    print("  - Area path doesn't exist in TFS")
+    print("  - No test cases in that area")
+    print("  - PAT token expired or insufficient permissions")
+print("="*100)
 
 
