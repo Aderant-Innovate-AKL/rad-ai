@@ -1,0 +1,207 @@
+name: Deploy with AWS Copilot
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.out.outputs.app }}
+      envs: ${{ steps.out.outputs.envs }}
+      svcs: ${{ steps.out.outputs.svcs }}
+      matrix: ${{ steps.out.outputs.matrix }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ vars.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Install dependencies (jq + Copilot)
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+          if ! command -v copilot >/dev/null 2>&1; then
+            curl -Lo copilot-linux https://ecs-cli-v2-release.s3.amazonaws.com/copilot-linux-v1.32.0
+            sudo mv copilot-linux /usr/local/bin/copilot
+            sudo chmod +x /usr/local/bin/copilot
+          fi
+          copilot --version
+          jq --version
+
+      - name: Read app name from copilot/.workspace
+        id: app
+        shell: bash
+        run: |
+          if [[ ! -f copilot/.workspace ]]; then
+            echo "copilot/.workspace not found." >&2
+            exit 1
+          fi
+          APP="$(awk -F': *' '/^application:/ {print $2; exit}' copilot/.workspace)"
+          if [[ -z "$APP" ]]; then
+            echo "Could not parse 'application:' from copilot/.workspace" >&2
+            exit 1
+          fi
+          echo "Detected app: $APP"
+          echo "APP=$APP" >> "$GITHUB_ENV"
+
+      - name: Discover envs & svcs and build matrices
+        id: discover
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Get envs/services JSON (names only)
+          copilot env ls --app "$APP" --json > envs.json || echo '{"environments":[]}' > envs.json
+          copilot svc ls --app "$APP" --json > svcs.json || echo '{"services":[]}' > svcs.json
+
+          ENV_JSON="$(jq -r '[.environments[]?.name]' envs.json)"
+          SVC_JSON="$(jq -r '[.services[]?.name]' svcs.json)"
+
+          echo "ENV_JSON: $ENV_JSON"
+          echo "SVC_JSON: $SVC_JSON"
+
+          # Build cross product matrix of {env, svc}
+          export ENV_JSON SVC_JSON
+          MATRIX_JSON="$(python3 - <<'PY'
+          import json, os
+          envs = json.loads(os.environ.get("ENV_JSON","[]"))
+          svcs = json.loads(os.environ.get("SVC_JSON","[]"))
+          matrix = [ {"env": e, "svc": s} for e in envs for s in svcs ]
+          print(json.dumps(matrix))
+          PY
+          )"
+          echo "MATRIX_JSON: $MATRIX_JSON"
+
+          # Stash to files for debugging (optional)
+          printf '%s\n' "$ENV_JSON" > envs.names.json
+          printf '%s\n' "$SVC_JSON" > svcs.names.json
+          printf '%s\n' "$MATRIX_JSON" > matrix.json
+
+          # Expose outputs (use heredoc for JSON)
+          {
+            echo "app=$APP"
+            echo 'envs<<EOF'
+            echo "$ENV_JSON"
+            echo 'EOF'
+            echo 'svcs<<EOF'
+            echo "$SVC_JSON"
+            echo 'EOF'
+            echo 'matrix<<EOF'
+            echo "$MATRIX_JSON"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Show discovery results (debug)
+        shell: bash
+        run: |
+          echo "App: $APP"
+          echo "Envs: $(cat envs.names.json)"
+          echo "Svcs: $(cat svcs.names.json)"
+          echo "Matrix: $(cat matrix.json)"
+
+      - name: Set composite outputs
+        id: out
+        run: |
+          # pass-through step so outputs.* are available to downstream jobs via this step id
+          {
+            echo "app=${APP}"
+            echo 'envs<<EOF';  cat envs.names.json; echo 'EOF'
+            echo 'svcs<<EOF';  cat svcs.names.json; echo 'EOF'
+            echo 'matrix<<EOF'; cat matrix.json; echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+  # Phase 1: deploy all environments (can run in parallel). Must complete before services.
+  env-deploy:
+    needs: prepare
+    if: ${{ needs.prepare.outputs.envs != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: ${{ fromJson(needs.prepare.outputs.envs) }}
+    env:
+      APP: ${{ needs.prepare.outputs.app }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ vars.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Install Copilot CLI
+        shell: bash
+        run: |
+          if ! command -v copilot >/dev/null 2>&1; then
+            curl -Lo /tmp/copilot https://github.com/aws/copilot-cli/releases/latest/download/copilot-linux
+            chmod +x /tmp/copilot
+            sudo mv /tmp/copilot /usr/local/bin/copilot
+          fi
+          copilot --version
+
+      - name: Deploy environment ${{ matrix.env }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "copilot env deploy --app '$APP' --name '${{ matrix.env }}'"
+          copilot env deploy --app "$APP" --name "${{ matrix.env }}"
+
+  # Phase 2: deploy each service to each environment (cross-product matrix)
+  svc-deploy:
+    needs: [prepare, env-deploy]
+    if: ${{ needs.prepare.outputs.matrix != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        combo: ${{ fromJson(needs.prepare.outputs.matrix) }}
+    env:
+      APP: ${{ needs.prepare.outputs.app }}
+      ENV: ${{ matrix.combo.env }}
+      SVC: ${{ matrix.combo.svc }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ vars.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Install Copilot CLI
+        shell: bash
+        run: |
+          if ! command -v copilot >/dev/null 2>&1; then
+            curl -Lo /tmp/copilot https://github.com/aws/copilot-cli/releases/latest/download/copilot-linux
+            chmod +x /tmp/copilot
+            sudo mv /tmp/copilot /usr/local/bin/copilot
+          fi
+          copilot --version
+
+      - name: Deploy service ${{ env.SVC }} to env ${{ env.ENV }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "copilot svc deploy --app '$APP' --env '${ENV}' --name '${SVC}'"
+          copilot svc deploy --app "$APP" --env "$ENV" --name "$SVC"
