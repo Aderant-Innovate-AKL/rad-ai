@@ -155,6 +155,7 @@ class PRInfoResponse(BaseModel):
     total_files: int = Field(description="Total number of files changed")
     total_additions: int = Field(description="Total lines added")
     total_deletions: int = Field(description="Total lines deleted")
+    summary: str = Field(description="AI-generated summary of the PR changes")
 
 
 class PRSummaryResponse(BaseModel):
@@ -728,18 +729,25 @@ async def fetch_bug_info(bug_id: str):
 @app.get("/fetch-pr-info/{pr_number}", response_model=PRInfoResponse)
 async def fetch_pr_info(pr_number: int):
     """
-    Fetch Pull Request information from GitHub including changed files.
+    Fetch Pull Request information from GitHub including changed files and AI-generated summary.
     
     Args:
         pr_number: The PR number to fetch
         
     Returns:
-        PR information including title, state, and list of changed files
+        PR information including title, state, list of changed files, and AI summary
     """
     if not GITHUB_OWNER or not GITHUB_REPO:
         raise HTTPException(
             status_code=500,
             detail="GitHub configuration missing. Please set GITHUB_TOKEN, GITHUB_OWNER, and GITHUB_REPO in .env file"
+        )
+    
+    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not anthropic_api_key:
+        raise HTTPException(
+            status_code=500,
+            detail="ANTHROPIC_API_KEY not configured in .env file"
         )
     
     try:
@@ -772,8 +780,10 @@ async def fetch_pr_info(pr_number: int):
             )
         
         pr_data = pr_response.json()
+        pr_title = pr_data.get("title", "")
+        pr_body = pr_data.get("body", "") or ""
         
-        # Fetch changed files
+        # Fetch changed files with patches
         files_response = requests.get(files_url, headers=headers, timeout=30)
         
         if files_response.status_code != 200:
@@ -789,31 +799,89 @@ async def fetch_pr_info(pr_number: int):
         total_additions = 0
         total_deletions = 0
         
+        # Build file changes summary for AI
+        file_summaries = []
         for file in files_data:
+            filename = file.get("filename", "")
+            status = file.get("status", "")
+            additions = file.get("additions", 0)
+            deletions = file.get("deletions", 0)
+            changes = file.get("changes", 0)
+            patch = file.get("patch", "")
+            
             file_changes.append(FileChange(
-                filename=file.get("filename", ""),
-                status=file.get("status", ""),
-                additions=file.get("additions", 0),
-                deletions=file.get("deletions", 0),
-                changes=file.get("changes", 0)
+                filename=filename,
+                status=status,
+                additions=additions,
+                deletions=deletions,
+                changes=changes
             ))
-            total_additions += file.get("additions", 0)
-            total_deletions += file.get("deletions", 0)
+            total_additions += additions
+            total_deletions += deletions
+            
+            # Truncate large patches to avoid token limits
+            if len(patch) > 2000:
+                patch = patch[:2000] + "\n... (truncated)"
+            
+            file_summaries.append(f"""
+File: {filename}
+Status: {status}
+Changes: +{additions} -{deletions}
+Diff:
+{patch}
+""")
+        
+        # Generate AI summary of changes
+        print("Generating AI summary of PR changes...")
+        changes_text = "\n---\n".join(file_summaries)
+        
+        prompt = f"""Analyze this Pull Request and provide a clear, concise summary of the changes.
+
+PR Title: {pr_title}
+PR Description: {pr_body[:1000] if pr_body else "No description provided"}
+
+Files Changed ({len(files_data)} files):
+{changes_text}
+
+Please provide:
+1. A brief overall summary of what this PR accomplishes (2-3 sentences)
+2. Key changes organized by category (e.g., New Features, Bug Fixes, Refactoring, etc.)
+3. Any notable patterns or concerns in the changes
+
+Keep the summary concise but informative."""
+
+        # Call Claude API
+        client = anthropic.Anthropic(api_key=anthropic_api_key)
+        model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5")
+        
+        message = client.messages.create(
+            model=model,
+            max_tokens=2048,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+        
+        summary = message.content[0].text
+        print("✓ AI summary generated successfully")
         
         return PRInfoResponse(
             pr_number=pr_number,
-            title=pr_data.get("title", ""),
+            title=pr_title,
             state=pr_data.get("state", ""),
             files_changed=file_changes,
             total_files=len(file_changes),
             total_additions=total_additions,
-            total_deletions=total_deletions
+            total_deletions=total_deletions,
+            summary=summary
         )
         
     except requests.exceptions.Timeout:
         raise HTTPException(status_code=504, detail="GitHub request timed out")
     except requests.exceptions.ConnectionError:
         raise HTTPException(status_code=503, detail="Could not connect to GitHub")
+    except anthropic.APIError as e:
+        raise HTTPException(status_code=500, detail=f"AI API error: {str(e)}")
     except HTTPException:
         raise
     except Exception as e:

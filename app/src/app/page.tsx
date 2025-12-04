@@ -261,7 +261,7 @@ ${filesDisplay}
             AI-Powered Analysis
           </div>
           <h1 className="mb-3 bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-5xl font-bold tracking-tight text-transparent">
-            Test Case Analyzer
+            Test Link AI
           </h1>
           <p className="max-w-md text-lg text-slate-400">
             Enter a bug ID or PR number to fetch details and analyze test cases
