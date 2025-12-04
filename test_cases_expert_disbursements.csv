@@ -1,524 +1,4 @@
 ID,Title,State,Area,Created Date,Description,Steps
-176648,Disbursements can be searched using the default search criterion,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Disbursement Grid,2017-09-01T03:08:03.873Z,"The screenshot above shows the initial set of search criterion loadout in Disbursement.
- 
-Additional search criterion that aren't the default set are tested in a separate test case.
- 
-Things to Test
- 
-For each criterion, enter a value and search in the application
-Then validate the search result by using the same field to search against ExpertQuery.Disbursement.
- 
-Finally, test some arbitrary combinations of the criterion (some examples below)
- 
-select *
-from ExpertQuery.Disbursement
-where ExpertDisbInitiated = 0
-and TransactionDate > '2002-09-01 17:08:36.407'
-and IncurringOfficeId = 'TLH'
- 
-select *
-from ExpertQuery.Disbursement
-where ExpertDisbInitiated = 0
-and TransactionDate > '2000-01-01 17:08:36.407'
-and DisbursementTypeId = 'cour'
- 
- 
-Individual criterion test details:
- 
-Disb ID:
- 
-select *
-from ExpertQuery.Disbursement
-where ID > 3000
-order by Id asc
- 
-Also test via inserting multiple Id's.
- 
-Status:
- 
-exec SECURITY.SetContextByName 'Aderant_ap\franklin.liu' --Security affects # of rows returned, set your security context to ensure best results
-select *
-from ExpertQuery.Disbursement
-where DisbursementStatus in ('E',
-'R'
-,'W'
---,'P','B','X','C'
-)
- 
-select *
-from CXL_CODE_LOOKUP
-where LOOKUP_GROUP = 'DisbStatus' --Expected statuses
-order by DISPLAY_SEQ asc
- 
-Currency
- 
-select distinct CurrencyId --find the currencies in use by existing disbursements
-from ExpertQuery.Disbursement
- 
-select *
-from ExpertQuery.Disbursement
-where CurrencyId = 'YEN'
- 
-Session
- 
-select SessionId,*
-from ExpertQuery.Disbursement a
-where SessionId > 0
-order by a.SessionId asc
- 
-select *
-from ExpertQuery.Disbursement
-where SessionId in(1, 2)
- 
-Cost Code
- 
-select distinct COST_CODE
-from CDT_DISB
- 
-select DisbursementTypeId, *
-from ExpertQuery.Disbursement a
-where DisbursementTypeId = 'COPY'
- 
-Tran Date
- 
-Note that WPF app control only supports '<' and '>' as operatros
- 
-select *
-from ExpertQuery.Disbursement a
-where TransactionDate > '2000-07-01 00:00:00.000'
- 
-Client/Matter
- 
-Note that from the application, you're entering matter code, whereas in SQL we're searching by Matter_uno
- 
-select *
-from ExpertQuery.Disbursement a
-where MatterId = 1
- 
-Disb Office
- 
-Note that we use IncurringOfficeId here instead of OfficeId, if you use the wrong field to search in SQL the numbers won't match.
- 
-select IncurringOfficeId, *
-from ExpertQuery.Disbursement
-where IncurringOfficeId = 'TLH'
- 
-ED initiated
- 
-Note that while in the application we use boolean for this field, the column data type is in bit (either 0 or 1)
- 
-select *
-from ExpertQuery.Disbursement
-where ExpertDisbInitiated = 0",
-176825,Disbursements can searched using the additionally available search criterion,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Disbursement Grid,2017-09-05T03:40:56.467Z,"These are the additionally available search criterion for the Disbursement search grid:
- 
-
-Things to test:
- 
-Authorizing employee:
- 
-select AuthorizingEmployeeId, *
-from ExpertQuery.Disbursement
-where AuthorizingEmployeeId <> 0
- 
-select *
-from CDT_DISB
-where AU_EMPL_UNO <> 0
-　
-update CDT_DISB
-set AU_EMPL_UNO = 100171
-where DISB_UNO = 3358
- 
-update CDT_DISB
-set AU_EMPL_UNO = 0
-where DISB_UNO = 3358",
-177629,Expert Disb: Ctrl+S Saves disbursements correctly,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-18T04:22:48.647Z,We need to ensure that the Ctrl+S functionality works correctly. 1. Create new disbursements and use Ctrl+S to save.2. Edit a disbursement and use Ctrl+S to save.3. Create new Session and use Ctrl+S to save.4. Edit a Session and use Ctrl+S to save.Make sure it updates the database correctly.--Disbursements are stored here.select * from cdt_disborder by LAST_MODIFIED desc--Session information is stored here.select * from CDS_DISB_Zorder by LAST_MODIFIED desc,
-177657,Expert Disb: Delete key deletes from Grids,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-18T20:51:44.697Z,This is to ensure that the Delete key deletes items from Grids in the Expert Disbursements application1. Delete a Disbursement from the disbursement grid.2. Delete a Disbursement from the Sessions grid.3. Delete a Session from the Sessions grid.Make sure it updates the database correctly.--Disbursements are stored here.select * from cdt_disborder by LAST_MODIFIED desc--Session information is stored here.select * from CDS_DISB_Zorder by LAST_MODIFIED desc,
-177784,Expert Disb: Ctrl+O opens from the grid,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-19T23:56:05.347Z,"This testcase is to ensure that the Ctrl+O functionality correctly opens up disbursements/sessions.
-
-Ensure the screen displays correct information.
-Ensure it is editable as long as it was created in Expert.
-
-1. On the Disbursement Tab, open a Disbursement created in Expert Disbursements.
-2. On the Disbursement Tab, open a Disbursement created in Classic.
-3. On the Sessions Tab, open a Session created in Expert Disbursements.
-4. On the Sessions Tab, open a Sessions created in classic.",
-177808,Expert Disb: Ctrl+N will create new items,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-20T02:02:19.89Z,We need to ensure that the Ctrl+N functionality works correctly. 1. Create new disbursements via Ctrl+N on the disbursement grid.2. Create new Session via Ctrl+N on the sessions grid.Make sure it updates the database correctly.--Disbursements are stored here.select * from cdt_disborder by LAST_MODIFIED desc--Session information is stored here.select * from CDS_DISB_Zorder by LAST_MODIFIED desc,
-177818,Expert Disb: F11 will minimize and maximize the application,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-20T03:22:59.397Z,We need to ensure that the F11 functionality works correctly. Open the Expert Disbursement application and press F11 to make the application take up the whole screen and press again to make sure it reduces back down to the normal size.,
-177820,Expert Disb: F5 will cause a search to be performed,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-20T03:32:44.27Z,We need to ensure that the F5 functionality works correctly. 1. Insert search criteria in the disbursements grid and hit F5 to search.2. Insert search criteria in the sessions grid and hit F5 to search.,
-177825,Expert Disb: Escape key will close a disbursement card.,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-20T04:17:21.087Z,"We need to ensure that the Escape Key functionality works correctly. 
-
-1. Create new disbursements and click the Escape Key. It will close without saving.
-2. Edit a disbursements and click the Escape Key. It will close without saving.
-3. Create a new disbursement in a Session and click the Escape Key. It will close without saving.
-4. Edit a disbursement in a Session and click the Escape Key. It will close without saving.
-
-
-Make sure it updates the database correctly.
-
-
---Disbursements are stored here.
-select * from cdt_disb
-order by LAST_MODIFIED desc
-
---Session information is stored here.
-
-select * from CDS_DISB_Z
-order by LAST_MODIFIED desc",
-177831,Expert Disb: Ctrl+Shift+S will save and add.,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-20T04:36:44.063Z,"We need to ensure that the Ctrl+Shift+S Key functionality works correctly. 1. Create new disbursements and click the Ctrl+Shift+S Key. It will save and give the user a new blank screen to enter another disbursement.2. Edit a disbursements and click the Ctrl+Shift+S Key. It will save and give the user a new blank screen to enter another disbursement.3. Create new Session, Create a new Disbursement and click the Ctrl+Shift+S Key. It will save and give the user a new blank screen to enter another disbursement.4. Edit a Session, Create a new Disbursement and click the Ctrl+Shift+S Key. It will save and give the user a new blank screen to enter another disbursement.Make sure it updates the database correctly.--Disbursements are stored here.select * from cdt_disborder by LAST_MODIFIED desc--Session information is stored here.select * from CDS_DISB_Zorder by LAST_MODIFIED desc",
-177872,Release Unrelease Disb - Classic Disb,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Release Unrelease Disb,2017-09-20T22:58:43.3Z,"Check that disbursements created outside Expert Disbursement cannot be released 
-Sometimes disbursements will be created inside sessions, sometimes not - we'll test what could be generated from these applications
- 
-Applications that can create disbursements are:
-- Classic
-- Expenses
-- Billing
-- Accounts Payable
- 
-(This should be the complete list...)
- 
-Tables & columns concerned: 
-CDT_DISB.SOURCE_TRAN_TYP
- 
-Testing approach
- 
-Setup data from the other applications (see above list)
- 
-Then use a similar SQL to pull back the different types of disbs to search for:
- 
-select *
-from cdt_disb
-where SOURCE_TRAN_TYP in ('AP'
---,'PCT'
---,'APX'
-,'CH'
---,'AD'
-) 
- 
-Open Expert Disbursements and look for those disbursements (ED_INITIATED = N or not set)
- 
-Check the available actions
-Perform check (release / unrelease, in this case)
-- For unrelease, we might need to use the application and/or classic to toggle the release state for checking unrelease...",
-177879,Release Unrelease Session - Disb with Alert and Rule Violations,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Release Unrelease Disb,2017-09-20T23:05:05.16Z,"Check with sessions having just one disbursement with an alert
-Also check sessions with multiple disbursements with a single alert, and multiple alerts, too.
- 
-Assumptions are:
-- User has security
-- All disbs are ED initiated
-- Source tran type = CDN (follows from above)
-- All Disbs are not released (in edit state)
- 
-On release (or the attempt), we expect the following
-- Dialog message displaying the validation rule we're violating
- 
-No state change expected in the table (CDS_DISB_Z or CDT_DISB)","Step 1: Release Disbursements with violation- Attach rule to matter via Entity Manager- Create disbursements that violate the rule. Save disbs.- Select the created disbursement. | Expected: Release button is enabled.Click Release button - Prompted with validation error, disbursement is not released. || Step 2: Release Multiple Disbursements with violation- Attach rule to matter via Entity Manager- Create multiple disbursements that violate the rule. Save disbs.- Select the created disbursements. | Expected: Release button is enabled.Click Release button - Prompted with validation error, disbursement is not released.Each disbursements have their own alert message in Recent Activity."
-177902,Release Unrelease Session - Validation,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Sessions,2017-09-21T01:48:57.75Z,,Step 1: Pre reqA Disbursement Session with 2 disbursement records. || Step 2: Release Disbursement Sesssion | Expected: CDS_DISB_Z.status = 'R'All related CDT_DISB records status = 'R'Session is not editable.Disbursment status updated on grid. || Step 3: Unrelease Disbursement Sesssion | Expected: CDS_DISB_Z.status = 'E'All related CDT_DISB records status = 'E'Session is editable.Disbursment status updated on grid.
-177906,Edit List - Session - Report requirement,Closed,ExpertSuite\Financials\Expert Disbursements\Reports\Edit List Report,2017-09-21T02:00:23.813Z,"A likely scenario, hence Base test Priority 3.
- 
-In this situation, a user must satisfy the Edit list requirements
-(note: The above was from Client Disbursements -> Dibursement setup -> Parameters)
- 
-Or on the employee itself:
-
-There are equivalent in places where you can set this in WPF world (Expert Administration, Entity Manager), but the above were pretty straightforward places to set this.
- 
-If the requirement is met, the user CAN initiate release
- 
-If the requirement is not met, the user is show a dialog.
- 
-In order to satisfy the edit list report requirement in Expert, you do something...to finish.
- 
-Note: In classic users can unrelease sessions even if edit list is required and the session hasn't been printed (makes sense to me). We should clarify with Dave to see if this makes sense in Expert too.
-Test the above assumption works as expected in Expert.
- 
-Testing Approach
- 
-Repeat the below approach for these scenarios:
-- Edit list required set in Disbursement parameters
-- Edit list required set on the user, but not in the disbursement parameters
- 
-When an edit list has been printed, the CDS_DISB_Z row is updated:
- 
-update CDS_DISB_Z set PRINTED = 'Y', LAST_MODIFIED = getdate() where SESSION=70                                                                      
-Given we're blocked by 176433, we'll have to use SQL to update the session in order to test this.",Step 1: see Summary for test
-177913,Expert Disb: Security - CreateDisbursement,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\New Disb,2017-09-21T02:12:50.863Z,This is to ensure that the create new disbursement screen looks and acts correctly.Wiki: https://aderant.sharepoint.com/RD/AP/Disbursements%20Wiki/Disbursement%20Entry%20Screen.aspx,"Step 1: Log in as user that does not have Disbursements.CreateDisbursement set up in Security Manager. | Expected: If they can get into the app, they won't be able to create a disbursement. Button will be grayed out. user also cannot create and edit disbursement in Session, either from the form or via inline edit. || Step 2: Log in as a user that has permissions and Create a new Disbursement from the main Disbursement tab. (Screen layout is attached.) | Expected: Session field will be 0. Review the database: select * from CDT_Disb order by LAST_MODIFIED desc. The newly create Disbursement should have data correct, including ED_Initiated field set to 'Y' and Expert_Disb_Status field set to 'E'. || Step 3: Log in as a user that has permissions and Click New Disbursement and check to make sure that the 'Save & Close' and 'Save & Add' are disabled until required fields are filled out. | Expected: Client/Matter, Disb Code, Office and Currency are all required. Currency will fill in if the Office has a default currency. Employee will be required if the Disb Code is set up to require it. (Meals is usually one that requires it."
-177965,Release Unrelease Disb - Disb with Alert and Rule Violations,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Release Unrelease Disb,2017-09-21T21:29:49.35Z,"Check with just one disbursement with an alert
-Also check multiple disbursements with a single alert, and multiple alerts, too.
- 
-Assumptions are:
-- User has security
-- All disbs are ED initiated
-- Source tran type = CDN (follows from above)
-- All Disbs are not released (in edit state)
- 
-On release (or the attempt), we expect the following
-- Dialog message displaying the validation rule we're violating
- 
-No state change expected in the table (CDS_DISB_Z or CDT_DISB)
- 
- Testing approach
- 
-We can use Design Studio to enable some rules e.g. DI0003 - Minimum characters for disbursement narrative. 
-Set this rule to active, then edit a disbursement to trigger this rule violation (setting narrative to empty).
-Then attempt to release the disbursement.
- 
-Clear the rule violation, then attempt to unrelease - we expect same response on unreleasing? Confirm with Dave.","Step 1: Release Disbursement with violation- Attach rule to matter via Entity Manager- Create disbursement that violates the rule. Save disb. | Expected: Release button is enabled.Click Release button - Prompted with validation error, disbursement is not released.Bug 271111 - Disb Release and Post: Release and Post buttons should not be enabled when the disbursement has errors || Step 2: Release Multiple Disbursements with violation- Attach rule to matter via Entity Manager- Create disbursements that violate the rule. Save disbs.- Select the created disbursements. | Expected: Release button is enabled.Click Release button - Prompted with validation error, disbursement is not released.Each disbursements have their own alert message in Recent Activity.Bug 271111 - Disb Release and Post: Release and Post buttons should not be enabled when the disbursement has errors"
-177970,Release Unrelease Disb - General,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Release Unrelease Disb,2017-09-21T21:42:10.627Z,"Test plan for all disbursement release/unrelease test cases
- 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-Test Multi here
-Test Multi here too
-
-
-
-
-
-Users can't release disbs created outside Expert Disbursement
-Users can't release disbs with Alerts / rule violations
-Users can release / unrelease disbs created in Expert Disbursement
-Users without Session Release disbursement security policy cannot release disbursements
-Edit List report requirement needs to be met before user can release disbursements
-
-
-
-
-
-
-
-
-
-
-ReleaseDisbursement
-Has
-Y
-Test
-Test
-Test
-
-Test
-
-
-Has not
-N
-
-
-
-Test
-
-
-ED initiated
-Yes
-Y
-
-Test
-Test
-
-Test
-
-
-NO
-N
-Test
-
-
-
-
-
-Disb Status
-E
-Y
-Test
-Test
-Test
-
-Test
-
-
-Not E
-N
-
-
-Test
-
-
-
-Source_tran_type
-CDN
-Y
-
-Test
-Test
-
-Test
-
-
-not CDN
-N
-Test
-
-
-
-
-
-CDT_MESSAGE table
-Nothing
-Y
-Test
-
-Test
-
-Test
-
-
-Has stuff
-N
-
-Test
-
-
-
-
-Is Released
-No
-Y
-Test
-Test
-Test
-
-Test
-
-
-Yes
-N
-
-
-Test
-
-
-
-
-
-
-
-
-
-
-
-
-Edit list Reports req
-Yes (both parameter and/or persnl)
-
-
-
-Test
-
-
-No
-
-Test
-Test
-Test
-Test
-
- 
-This outline was copied from 177902. The content from this point is largely the same, except the tables we're looking at is CDT_DISB instead of CDS_DISB_Z
- 
-Specifically for this test case though, we need to test that the sessions can be released / unreleased given some assumptions.
-We're not testing security, nor edit list report requirements, nor disbursements / sessions created outside Expert Disbursement. Pretty much the happy path test, hence Base test + Priority 1.
- 
-Data checking happens here - we're going to compare with the output we've gotten from doing the same operation in classic.
- 
-Testing approach
- 
-Tables concerned: 
-CDT_DISB
- 
- Note that there is no equivalent scenario in classic, as disbursements must sit inside a session. Therefore we expect the same thing that happened for disbursement sessions to happen here (changing the CDT_DISB.EXPERT_DISB_STATUS value)
- 
-Create a disbursement in Classic, and check the logs (CTRL + SHIFT + L)
-Create a disbursement inside Expert Disbursement, and check the CDT_DISB table. Compare the two entries - expect EXPERT_DISB_STATUS to be null for the classic entry. (Also ED_INITATED = null)
- 
-Repeat the testing approach for the following scenarios:
-- Selecting single disbursement with edit status - User can release
-- Selecting multiple disbursements with edit status - user can release
-- Selecting multiple disbursements with released status - Users can unrelease
-- Selecting multiple disbursements with mixed status - no release / unrelease option is available
- 
-Then release the disbursement. See what has changed in CDT_DISB - we expect EXPERT_DISB_STATUS to change to R
- 
-Then unrelease the disbursement. See what has changed in CDT_DISB - we expect EXPERT_DISB_STATUS to changed back to E","Step 1: Release disb <> 'CDN' type and in Edit status | Expected: Release button disabled. || Step 2: Release when edit list required | Expected: Release button enabled. Clicking it pops up 'Edit List has not been printed' info. || Step 3: Release without security | Expected: Release button disabled. || Step 4: Release Classic created | Expected: Release button disabled || Step 5: Release released disb | Expected: Release button disabled, Unrelease button enabled."
-177972,Edit List - Disb - Report requirement,Closed,ExpertSuite\Financials\Expert Disbursements\Reports\Edit List Report,2017-09-21T21:45:15.55Z,"Note: Content below is copied from 177906 - it's the same thing except transposed into the disbursement scenario.
- 
-A likely scenario, hence Base test Priority 3.
- 
-In this situation, a user must satisfy the Edit list requirements
-(note: The above was from Client Disbursements -> Dibursement setup -> Parameters)
- 
-Or on the employee itself:
-
-There are equivalent in places where you can set this in WPF world (Expert Administration, Entity Manager), but the above were pretty straightforward places to set this.
- 
-If the requirement is met, the user CAN initiate release
- 
-If the requirement is not met, the user is show a dialog.
- 
- 
-In order to satisfy the edit list report requirement in Expert, you do something... which will be known when 173426 is done.
- 
-Note: In classic users can unrelease sessions even if edit list is required and the session hasn't been printed (makes sense to me). We should clarify with Dave to see if this makes sense in Expert too.
- 
-Testing approach
- 
-Repeat the below approach for these scenarios:
-- Edit list required set in Disbursement parameters
-- Edit list required set on the user, but not in the disbursement parameters
- 
- 
-At this point in time, we don't have the ability to go through the Edit List path. So we'll need to do some SQL magic:
- 
-update CDT_DISB
-set EDIT_REPORT_PRINT_REF = 666
-where DISB_UNO = 3467
- 
-You should be able to release the disbursement now.
-**Remember that after SQL script is run, you'll need to re-search for the disbursement in order to be able to release, as the returned object is still at the 'old state' of having 0 as the edit list reference number
- 
-This will kick off a job:
- 
-
- select DISB_UNO, EXPERT_DISB_STATUS,ED_INITIATED, EDIT_REPORT_PRINT_REF,LAST_MODIFIED
-from CDT_DISB
-where DISB_UNO in (1861, 3467)
- 
-EXPERT_DISB_STATUS should now update from E to R
- 
-**Note that in order to unrelease, there are no other requirements except for the disbursement to be in the ""released"" state. We don't have to test this in this test case if short on time.",Step 1: See summary for test
-177973,Unposted Disb Edit - Open Existing Disb,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\New Disb,2017-09-21T21:50:00.17Z,This is to ensure that the Open screen looks and operates correctly.,"Step 1: Log in as user that does not have Disbursements.CreateDisbursement set up in Security Manager but make sure they have access to the application. Search for a Disbursement and click Open. | Expected: User can review the disbursement but cannot edit anything. || Step 2: Log in as a user that has permissions and Search and Open a Disbursement from the main Disbursement tab. (Screen layout is attached.) Make a change to any of the fields. | Expected: Session field will be 0. Review the database: select * from CDT_Disb order by LAST_MODIFIED desc. The newly create Disbursement should have data correct, including ED_Initiated field set to 'Y' and Expert_Disb_Status field set to 'E'. || Step 3: Search for disbursements and ensure there are multiple Disbursements in the grid. Highlight multiple disbursements. | Expected: Open button will be grayed out. Right Click will have the 'Open' option grayed out. || Step 4: Search for disbursements and ensure there are multiple Disbursements in the grid. Right click and select Export to Excel/Export All Rows. | Expected: There will be the same number in the Excel spreadsheet as exist in the list. || Step 5: Search for disbursements and ensure there are multiple Disbursements in the grid. Do a Ctrl+A to get all the rows, right click and select Export to Excel/Export Selected Rows. | Expected: There will be the same number in the Excel spreadsheet as exist in the list. || Step 6: Search for disbursements and ensure there are multiple Disbursements in the grid. Select several rows, right click and select Export to Excel/Export Selected Rows. | Expected: There will be the same number in the Excel spreadsheet as were selected in the list."
-178058,Disbursement created in Classic,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\New Disb,2017-09-24T20:05:06Z,,"Step 1: Create a Disbursement in Classic using Disbursement Entry. | Expected: Review DB: select * from cdt_disb order by LAST_MODIFIED desc. ED_Initiated field should have 'N' || Step 2: Open Expert Disbursements and open the same disbursement. | Expected: Disbursement will be uneditable  and display the message: ""Warning: This disbursement was created in the Classic Disbursements application and cannot be edited in Expert Disbursements. If you wish to edit this disbursement, please use the Classic Disbursements application"""
-178080,Expert Disb: Create New Session Screen,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Sessions,2017-09-25T00:17:20.353Z,This is to ensure that the create new disbursement screen looks and acts correctly.Wiki: https://aderant.sharepoint.com/RD/AP/Disbursements%20Wiki/Disbursement%20Entry%20Screen.aspx,"Step 1: Log in as user that does not have Sessions.CreateDisbursement set up in Security Manager. | Expected: If they can get into the app, they won't be able to create a session. Button will be grayed out. || Step 2: Log in as a user that has permissions and Create a new Disbursement from the main Disbursement tab. (Screen layout is attached.) | Expected: Session field will match the number created. Review the database: select * from CDS_Disb order by LAST_MODIFIED desc. The newly create Session should have data correct, including ED_Initiated field set to 'Y' and Expert_Disb_Status field set to 'E'. || Step 3: Create a Disbursement on the new Session. | Expected: Review the database: select * from CDT_Disb order by LAST_MODIFIED desc. The newly create Disbursement should have data correct, including ED_Initiated field set to 'Y' and Expert_Disb_Status field set to 'E'. Session field will match the number created. || Step 4: Log in as a user that has permissions and Create a New Session. Create a new disbursement and check to make sure that the 'Save & Close' and 'Save & Add' are disabled until required fields are filled out. | Expected: Client/Matter, Disb Code, Office and Currency are all required. Currency will fill in if the Office has a default currency. Employee will be required if the Disb Code is set up to require it. (Meals is usually one that requires it."
-178260,Expert Disb: Deleting Pre-Posted Sessions,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Sessions,2017-09-27T02:12:55.637Z,This is to test that Deleting a Session will correctly delete all the referenced disbursements.Delete button should enable:- when one and only one session header is selected.- The session satisfy following sql:select * from CDS_DISB_Z where ED_INITIATED = 'Y' and STATUS = 'E',Step 1: This test case need to be run against 2 screens but contains the same result. @Session || Step 2: Create a Session with no Disbursements and Delete it. | Expected: In the database it should exist here when it is created: select * from cds_disb_z order by LAST_MODIFIED desc. It should be gone after the delete.Note: No Message will show up. || Step 3: Create a Session with One Disbursement and Delete the Session. | Expected: In the database the session should exist here when it is created: select * from cds_disb_z order by LAST_MODIFIED desc. It will still be there after the Disbursement is deleted.The Disbursements will exist here when created: select * from cdt_disb order by LAST_MODIFIED desc. The Disbursement deleted will be gone after the delete.   Note: Attached pop up shows up. || Step 4: Create a Session with Multiple Disbursements and Delete the Session. | Expected: In the database the session should exist here when it is created: select * from cds_disb_z order by LAST_MODIFIED desc. It will still be there after the Disbursement is deleted.The Disbursements will exist here when created: select * from cdt_disb order by LAST_MODIFIED desc. The Disbursement deleted will be gone after the delete.  Note: Attached pop up shows up || Step 5: Create a Session with Multiple Disbursements and Delete one of the Disbursements. | Expected: In the database the session should exist here when it is created: select * from cds_disb_z order by LAST_MODIFIED desc. It will still be there after the Disbursement is deleted.The Disbursements will exist here when created: select * from cdt_disb order by LAST_MODIFIED desc. The Disbursement deleted will be gone after the delete. || Step 6: Create a session with Multiple Disbursement and release at least one of the disbursements. | Expected: In the database the session should exist here when it is created: select * from cds_disb_z order by LAST_MODIFIED desc. It will still be there after the Disbursement is deleted.The Disbursements will exist here when created: select * from cdt_disb order by LAST_MODIFIED desc. The Disbursement deleted will be gone after the delete.   Note: Attached will show up. Deleting can't perform. || Step 7: Create a session with Multiple Disbursement and post at least one of the disbursements. | Expected: In the database the session should exist here when it is created: select * from cds_disb_z order by LAST_MODIFIED desc. It will still be there after the Disbursement is deleted.The Disbursements will exist here when created: select * from cdt_disb order by LAST_MODIFIED desc. The Disbursement deleted will be gone after the delete.   Note: Attached will show up. Deleting can't perform.
-178377,Admin - Grid Options,Closed,ExpertSuite\Financials\Expert Disbursements\Administration\Grid Options,2017-09-28T19:35:44.01Z,This story is to test the various options in Expert Administration where it relates to Expert Disbursements.,Step 1: Create and edit some Disbursement Sessions Grid Options and ensure that they show up in the Sessions List Screen. | Expected: Changes will show up in the application. || Step 2: Create and edit some Disbursement Sessions Disbursement Grid Options and ensure that they show up in the Sessions' Disbursement List Screen. | Expected: Changes will show up in the application.
-178380,Disbursements - Launch Application from Expert Assistant,Ready,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-28T20:03:11.943Z,,Step 1: Make sure the user does not have permissions to access Expert Disbursements. Open up Expert Assistant and select Actions. | Expected: Expert Disbursements will be an option (Not sure if it will be there or not with permissions until I test) and when double clicked it will not open the application. || Step 2: Give the user permissions to access Expert Disbursements. Open up Expert Assistant and select Actions. | Expected: Expert Disbursements will be an option and when double clicked it will open the application.
-178383,Expert Disb: New field for Statuses,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-28T20:57:18.123Z,This is to test the refactoring of Statuses in Expert disbursements. Classic is tested elsewhere.,"Step 1: Create a new disbursement in Expert Disb. | Expected: Expert_Disb_Status field will be 'E' and Ed_Initiated will be equal to 'Y' || Step 2: Create Disbursements in Classic. | Expected: Expert_Disb_Status field will be 'E' and Ed_Initiated will be equal to 'N' || Step 3: As you change their statuses in the system it should update the database accordingly. | Expected: Expert_Disb_Status field will be E (Edit), ​R (Released), ​W (WIP), ​P (Prebill), ​B (Billed), ​X (Cancelled)"
-178409,Expert Disb: New DB fields for Accounts Payable,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-29T00:19:07.337Z,,Step 1: Create a Disbursement in  Accounts Payable. (Go to Invoices and select New. After you fill out the Vendor information the Disbursements Tab at the bottom will be used to create new Disbursements.) | Expected: In the cdt_disb table the new fields will have the following values: ED_Initiated = 'Y' Expert_Disb_Status = 'E'. || Step 2: Edit the Disbursement and review the data in the DB. | Expected: New information will save.
-178410,Expert Disb: New DB Fields Billing,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-29T00:19:46.62Z,,Step 1: Create a Disbursement in Billing. | Expected: In the cdt_disb table the new fields will have the following values: ED_Initiated = 'Y' Expert_Disb_Status = 'P'. || Step 2: Edit the Disbursement and review the data in the DB. | Expected: New information will save. || Step 3: Release the Disbursement. | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'R'. || Step 4: Unrelease the Disbursement. | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'E'. || Step 5: Post the Disbursement. | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'W'. || Step 6: Create a Prebill | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'P'. || Step 7: Create a Bill | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'B'. || Step 8: Create a Disbursement then cancel it. | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'X'.
-178411,Expert Disb: New DB Fields Expert Disb,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-29T00:20:05.293Z,,Step 1: Create a Disbursement in Expert Disbursement. | Expected: In the cdt_disb table the new fields will have the following values: ED_Initiated = 'Y' Expert_Disb_Status = 'E'. || Step 2: Edit the Disbursement and review the data in the DB. | Expected: New information will save. || Step 3: Release the Disbursement. | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'R'. || Step 4: Unrelease the Disbursement. | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'E'. || Step 5: Post the Disbursement. | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'W'. || Step 6: Create a Prebill | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'P'. || Step 7: Create a Bill | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'B'. || Step 8: Create a Disbursement then cancel it. | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'X'.
-178412,Expert Disb: New DB Fields Expenses,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-29T00:20:22.95Z,,Step 1: Create a Disbursement in Expenses. (Create a New Report. Add a new Receipt.) | Expected: In the cdt_disb table the new fields will have the following values: ED_Initiated = 'Y' Expert_Disb_Status = 'E'. || Step 2: Edit the Disbursement and review the data in the DB. | Expected: New information will save.
-178597,Expert Disb: Session List cannot edit Sessions created in Classic,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Sessions,2017-10-03T03:05:07.73Z,,Step 1: Create a Session with several Disbursements in Classic. (Appshell/Disbursements/Disbursement Entry) View it in in Classic | Expected: User will not be able to Edit or change it in any way. || Step 2: Post the Session with all the Disbursements. | Expected: User will not be able to Edit or change it in any way.
 178634,Jobs - Recent Activity ,Ready,ExpertSuite\Financials\Expert Disbursements\Jobs and Recent Activities,2017-10-03T20:46:48.307Z,,Step 1: Create a disbursement and Release it. | Expected: A notification will occur on the little bell icon on the top right of the screen. The recent activity Tab will have it listed correctly. || Step 2: Take a released disbursement and Unrelease it. | Expected: A notification will occur on the little bell icon on the top right of the screen. The recent activity Tab will have it listed correctly. || Step 3: Create a disbursement and Post it. | Expected: A notification will occur on the little bell icon on the top right of the screen. The recent activity Tab will have it listed correctly. || Step 4: Create a disbursement that will generate an alert. | Expected: A notification will occur on the little bell icon on the top right of the screen that there is an error. The recent activity Tab will have it listed correctly as an alert.
 178925,Admin - Disb Options - Adjustment Reason Code,Ready,ExpertSuite\Financials\Expert Disbursements\Administration\Disbursement Options,2017-10-06T02:48:58.773Z,This is to test that Adjustment Reason Codes can be created/saved/Edited in Expert Administration.,"Step 1: Reason Code | Expected: Required fieldMax 4 charNon-editable even after first save. || Step 2: Active | Expected: checkbox || Step 3: Description | Expected: Required fieldMax 80 charEditable even after first save. || Step 4: *NoteAdj Reason Code created in Expert do not have its CDL_ADJ.MIN_AMT , MIN_PCNT and ADJ_PSWD populated the same way as Classic does. Give that these fields do not have known uses on Expert as of now,"
 179057,Expert Disb: Edited fields in a disbursement will save prior to posting.,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Edit Unposted Disb,2017-10-09T02:09:32.67Z,"This TC is for testing that disbursements will save when it is being edited prior to posting.Things to Test:1.  Use Open button to edit.2.  List of valid disbursement can be edit before postselect SOURCE_TRAN_TYP,* from CDT_DISB where EXPERT_DISB_STATUS = 'E'  and SOURCE_TRAN_TYP = 'CDN' and ED_INITIATED = 'Y'3. Compare table update between appshell and disbursement..4. Only the disbursement created in expert disbursement if un-posted. Note:Form behavior please see disbursement entry screen.",
@@ -1060,3 +540,523 @@ CAD on USD matter","Step 1: Pre reqsMatterCur = USDDisb Code (Can use MILE)Class
 267891,Smoke Test Disb: Rules,Ready,ExpertSuite\Financials\Expert Disbursements,2023-02-03T01:36:13.41Z,,"Step 1: Select to create a new rule for Disbs1. Design studio | Expert Disbursements | Rules | 2. Right click on the end point Disbursement processing | On Disbursement Save |3. Add rule | Create new4. Enter header details- Name- Code5. Enter activity details- Enter message (text must be in double quotes)""Disb: Amount can't be greater than 100""- Add field Disbursement.BaseAmount- Set operator to >- Set value to 1006. Save | Expected: Rule is savedSELECT CODE,r.NAME,r.INACTIVE,ENTITY_ASSOCIATED,RULE_KEY,rv.EFFECTIVE_FROM,rv.EFFECTIVE_UNTIL,rc.NAME, rc.DATA_TYPE,r.* FROM FWM_RULE rLEFT JOIN FWM_RULE_VERSION rv ON r.RULE_UNO = rv.RULE_UNO LEFT JOIN FWM_RULE_CONTRACT rc ON r.RULE_UNO = rc.RULE_UNO ORDER BY r.RULE_UNO desc || Step 2: Create disbursement1. New disb- Amount = 100.01- Enter other mandatory data4. Save & Close | Expected: Error message displayed and error savedCDT_MESSAGE 1 created"
 269937,Disb Import - Employee,Ready,ExpertSuite\Financials\Expert Disbursements\Utilities\Import,2023-04-12T23:51:58.03Z,,"Step 1: Cost Code employee is required - employee code is correct1. Ensure employee is mapped in the import wizard2. Import the invoiceSELECT COST_CODE, COST_DESC,INEMP_REQDFROM CDL_COST cc WHERE INACTIVE!='Y'ORDER BY cc.COST_CODE | Expected: Invoice and disb importedEmployee uno set to correct uno || Step 2: Cost Code employee is required - employee code is invalid1. Ensure employee is mapped in the import wizard2. Import the invoice | Expected: Invoice and disb importedError on disb: Incurring employee code xxx is invalid Error on disb: Incurring employee is required Fixed in 822 EX0011Employee uno set to 0 || Step 3: Cost Code employee is required - employee code not entered1. Ensure employee is mapped in the import wizard2. Import the invoice | Expected: Invoice and disb importedError on disb: Incurring employee is required Fixed in 822 EX0011Employee uno set to 0 || Step 4: Cost Code employee is required - employee is inactive1. Ensure employee is mapped in the import wizard2. Import the invoice | Expected: Invoice and disb importedError on disb: Inactive employee with code xxxEmployee uno set to correct unoBug 269936 - Disb import: error message not translated for inactive employee || Step 5: Cost Code employee is required - employee field is not mapped1. Ensure employee is NOT mapped in the import wizard2. Import the invoice | Expected: Invoice and disb importedError on disb: Incurring employee is requiredEmployee uno set to 0 || Step 6: Cost Code employee not required - employee code is correct1. Ensure employee is mapped in the import wizard2. Import the invoice | Expected: Invoice and disb importedEmployee uno set to correct uno || Step 7: Cost Code employee not required - employee code is invalid1. Ensure employee is mapped in the import wizard2. Import the invoice | Expected: Invoice and disb importedError on disb: Incurring employee code is invalidEmployee uno set to 0 || Step 8: Cost Code employee not required - employee code not entered1. Ensure employee is mapped in the import wizard2. Import the invoice | Expected: Invoice and disb importedEmployee uno set to 0 || Step 9: Cost Code employee is not required - employee is inactive | Expected: Invoice and disb importedError on disb: Inactive employee with code xxxEmployee uno set to correct uno"
 276787,Negative disbursement in Expert Billing and Expert Disbursement,Ready,ExpertSuite\Financials\Expert Disbursements,2024-01-29T23:45:23.797Z,,"Step 1: Preconditions: || Step 2: Expert AP, Expert Billing & Expert Disbursement are accessible || Step 3: A Vendor & client/matter exist for testing || Step 4: To test transaction type - APX || Step 5: Open Expert AP and create an invoice with a disbursement line. Post the invoice. | Expected: Before invoice posted WIP_STATUS is 'N' in CDT_DISB After posting WIP_STATUS changes to 'W' || Step 6: Open Expert Billing and create a prebill for the above client/matter. Post the prebill. | Expected: When Pre-bill is prepared in CDT_Disb WIP_STATUS changes to 'P'When pre-bill is posted WIP_STATUS changes to 'B' || Step 7: Return to Expert AP and cancel the invoice created in the previous step. | Expected: It creates a new record (reversal line) in CDT_DISB table with Source_Tran_type as 'APX' and WIP_STATUS is 'W' || Step 8: Go back to Expert Billing and create a prebill for the same client/matter. | Expected: It changes WIP_STATUS of the new record to 'P' from 'W' || Step 9: Open the prebill created in Step 4 and click on 'Transfer'. | Expected: - On Expert Billing: The system should allow the transfer or split of a prebill with a negative disbursement. || Step 10: Verify if an error is displayed on save. If yes, log the error message. || Step 11: Return to Expert Billing and return the prebill from previous step to WIP. || Step 12: Open Expert Disbursement, edit the disbursement and save. | Expected: - On Expert Disbursement: The system should allow the editing of a disbursement with a negative amount. || Step 13: Verify if an error is displayed on save. If yes, log the error message. || Step 14: To test transaction type - CHX || Step 15: Open Expert AP and create a Payment with a disbursement line. Post the payment. || Step 16: Open Expert Billing and create a prebill for the above client/matter. Post the prebill. || Step 17: Return to Expert AP and cancel the payment created in the previous step. || Step 18: Go back to Expert Billing and create a prebill for the same client/matter. || Step 19: Open the prebill created in the previous step and click on 'Transfer'. | Expected: - On Expert Billing: The system should allow the transfer or split of a prebill with a negative disbursement. || Step 20: Verify if an error is displayed on save. If yes, log the error message. || Step 21: Return to Expert Billing and return the prebill from Step 4 to WIP. || Step 22: Open Expert Disbursement, edit the disbursement and save. | Expected: - On Expert Disbursement: The system should allow the editing of a disbursement with a negative amount. || Step 23: Verify if an error is displayed on save. If yes, log the error message."
+176648,Disbursements can be searched using the default search criterion,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Disbursement Grid,2017-09-01T03:08:03.873Z,"The screenshot above shows the initial set of search criterion loadout in Disbursement.
+ 
+Additional search criterion that aren't the default set are tested in a separate test case.
+ 
+Things to Test
+ 
+For each criterion, enter a value and search in the application
+Then validate the search result by using the same field to search against ExpertQuery.Disbursement.
+ 
+Finally, test some arbitrary combinations of the criterion (some examples below)
+ 
+select *
+from ExpertQuery.Disbursement
+where ExpertDisbInitiated = 0
+and TransactionDate > '2002-09-01 17:08:36.407'
+and IncurringOfficeId = 'TLH'
+ 
+select *
+from ExpertQuery.Disbursement
+where ExpertDisbInitiated = 0
+and TransactionDate > '2000-01-01 17:08:36.407'
+and DisbursementTypeId = 'cour'
+ 
+ 
+Individual criterion test details:
+ 
+Disb ID:
+ 
+select *
+from ExpertQuery.Disbursement
+where ID > 3000
+order by Id asc
+ 
+Also test via inserting multiple Id's.
+ 
+Status:
+ 
+exec SECURITY.SetContextByName 'Aderant_ap\franklin.liu' --Security affects # of rows returned, set your security context to ensure best results
+select *
+from ExpertQuery.Disbursement
+where DisbursementStatus in ('E',
+'R'
+,'W'
+--,'P','B','X','C'
+)
+ 
+select *
+from CXL_CODE_LOOKUP
+where LOOKUP_GROUP = 'DisbStatus' --Expected statuses
+order by DISPLAY_SEQ asc
+ 
+Currency
+ 
+select distinct CurrencyId --find the currencies in use by existing disbursements
+from ExpertQuery.Disbursement
+ 
+select *
+from ExpertQuery.Disbursement
+where CurrencyId = 'YEN'
+ 
+Session
+ 
+select SessionId,*
+from ExpertQuery.Disbursement a
+where SessionId > 0
+order by a.SessionId asc
+ 
+select *
+from ExpertQuery.Disbursement
+where SessionId in(1, 2)
+ 
+Cost Code
+ 
+select distinct COST_CODE
+from CDT_DISB
+ 
+select DisbursementTypeId, *
+from ExpertQuery.Disbursement a
+where DisbursementTypeId = 'COPY'
+ 
+Tran Date
+ 
+Note that WPF app control only supports '<' and '>' as operatros
+ 
+select *
+from ExpertQuery.Disbursement a
+where TransactionDate > '2000-07-01 00:00:00.000'
+ 
+Client/Matter
+ 
+Note that from the application, you're entering matter code, whereas in SQL we're searching by Matter_uno
+ 
+select *
+from ExpertQuery.Disbursement a
+where MatterId = 1
+ 
+Disb Office
+ 
+Note that we use IncurringOfficeId here instead of OfficeId, if you use the wrong field to search in SQL the numbers won't match.
+ 
+select IncurringOfficeId, *
+from ExpertQuery.Disbursement
+where IncurringOfficeId = 'TLH'
+ 
+ED initiated
+ 
+Note that while in the application we use boolean for this field, the column data type is in bit (either 0 or 1)
+ 
+select *
+from ExpertQuery.Disbursement
+where ExpertDisbInitiated = 0",
+176825,Disbursements can searched using the additionally available search criterion,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Disbursement Grid,2017-09-05T03:40:56.467Z,"These are the additionally available search criterion for the Disbursement search grid:
+ 
+
+Things to test:
+ 
+Authorizing employee:
+ 
+select AuthorizingEmployeeId, *
+from ExpertQuery.Disbursement
+where AuthorizingEmployeeId <> 0
+ 
+select *
+from CDT_DISB
+where AU_EMPL_UNO <> 0
+　
+update CDT_DISB
+set AU_EMPL_UNO = 100171
+where DISB_UNO = 3358
+ 
+update CDT_DISB
+set AU_EMPL_UNO = 0
+where DISB_UNO = 3358",
+177629,Expert Disb: Ctrl+S Saves disbursements correctly,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-18T04:22:48.647Z,We need to ensure that the Ctrl+S functionality works correctly. 1. Create new disbursements and use Ctrl+S to save.2. Edit a disbursement and use Ctrl+S to save.3. Create new Session and use Ctrl+S to save.4. Edit a Session and use Ctrl+S to save.Make sure it updates the database correctly.--Disbursements are stored here.select * from cdt_disborder by LAST_MODIFIED desc--Session information is stored here.select * from CDS_DISB_Zorder by LAST_MODIFIED desc,
+177657,Expert Disb: Delete key deletes from Grids,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-18T20:51:44.697Z,This is to ensure that the Delete key deletes items from Grids in the Expert Disbursements application1. Delete a Disbursement from the disbursement grid.2. Delete a Disbursement from the Sessions grid.3. Delete a Session from the Sessions grid.Make sure it updates the database correctly.--Disbursements are stored here.select * from cdt_disborder by LAST_MODIFIED desc--Session information is stored here.select * from CDS_DISB_Zorder by LAST_MODIFIED desc,
+177784,Expert Disb: Ctrl+O opens from the grid,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-19T23:56:05.347Z,"This testcase is to ensure that the Ctrl+O functionality correctly opens up disbursements/sessions.
+
+Ensure the screen displays correct information.
+Ensure it is editable as long as it was created in Expert.
+
+1. On the Disbursement Tab, open a Disbursement created in Expert Disbursements.
+2. On the Disbursement Tab, open a Disbursement created in Classic.
+3. On the Sessions Tab, open a Session created in Expert Disbursements.
+4. On the Sessions Tab, open a Sessions created in classic.",
+177808,Expert Disb: Ctrl+N will create new items,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-20T02:02:19.89Z,We need to ensure that the Ctrl+N functionality works correctly. 1. Create new disbursements via Ctrl+N on the disbursement grid.2. Create new Session via Ctrl+N on the sessions grid.Make sure it updates the database correctly.--Disbursements are stored here.select * from cdt_disborder by LAST_MODIFIED desc--Session information is stored here.select * from CDS_DISB_Zorder by LAST_MODIFIED desc,
+177818,Expert Disb: F11 will minimize and maximize the application,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-20T03:22:59.397Z,We need to ensure that the F11 functionality works correctly. Open the Expert Disbursement application and press F11 to make the application take up the whole screen and press again to make sure it reduces back down to the normal size.,
+177820,Expert Disb: F5 will cause a search to be performed,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-20T03:32:44.27Z,We need to ensure that the F5 functionality works correctly. 1. Insert search criteria in the disbursements grid and hit F5 to search.2. Insert search criteria in the sessions grid and hit F5 to search.,
+177825,Expert Disb: Escape key will close a disbursement card.,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-20T04:17:21.087Z,"We need to ensure that the Escape Key functionality works correctly. 
+
+1. Create new disbursements and click the Escape Key. It will close without saving.
+2. Edit a disbursements and click the Escape Key. It will close without saving.
+3. Create a new disbursement in a Session and click the Escape Key. It will close without saving.
+4. Edit a disbursement in a Session and click the Escape Key. It will close without saving.
+
+
+Make sure it updates the database correctly.
+
+
+--Disbursements are stored here.
+select * from cdt_disb
+order by LAST_MODIFIED desc
+
+--Session information is stored here.
+
+select * from CDS_DISB_Z
+order by LAST_MODIFIED desc",
+177831,Expert Disb: Ctrl+Shift+S will save and add.,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-20T04:36:44.063Z,"We need to ensure that the Ctrl+Shift+S Key functionality works correctly. 1. Create new disbursements and click the Ctrl+Shift+S Key. It will save and give the user a new blank screen to enter another disbursement.2. Edit a disbursements and click the Ctrl+Shift+S Key. It will save and give the user a new blank screen to enter another disbursement.3. Create new Session, Create a new Disbursement and click the Ctrl+Shift+S Key. It will save and give the user a new blank screen to enter another disbursement.4. Edit a Session, Create a new Disbursement and click the Ctrl+Shift+S Key. It will save and give the user a new blank screen to enter another disbursement.Make sure it updates the database correctly.--Disbursements are stored here.select * from cdt_disborder by LAST_MODIFIED desc--Session information is stored here.select * from CDS_DISB_Zorder by LAST_MODIFIED desc",
+177872,Release Unrelease Disb - Classic Disb,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Release Unrelease Disb,2017-09-20T22:58:43.3Z,"Check that disbursements created outside Expert Disbursement cannot be released 
+Sometimes disbursements will be created inside sessions, sometimes not - we'll test what could be generated from these applications
+ 
+Applications that can create disbursements are:
+- Classic
+- Expenses
+- Billing
+- Accounts Payable
+ 
+(This should be the complete list...)
+ 
+Tables & columns concerned: 
+CDT_DISB.SOURCE_TRAN_TYP
+ 
+Testing approach
+ 
+Setup data from the other applications (see above list)
+ 
+Then use a similar SQL to pull back the different types of disbs to search for:
+ 
+select *
+from cdt_disb
+where SOURCE_TRAN_TYP in ('AP'
+--,'PCT'
+--,'APX'
+,'CH'
+--,'AD'
+) 
+ 
+Open Expert Disbursements and look for those disbursements (ED_INITIATED = N or not set)
+ 
+Check the available actions
+Perform check (release / unrelease, in this case)
+- For unrelease, we might need to use the application and/or classic to toggle the release state for checking unrelease...",
+177879,Release Unrelease Session - Disb with Alert and Rule Violations,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Release Unrelease Disb,2017-09-20T23:05:05.16Z,"Check with sessions having just one disbursement with an alert
+Also check sessions with multiple disbursements with a single alert, and multiple alerts, too.
+ 
+Assumptions are:
+- User has security
+- All disbs are ED initiated
+- Source tran type = CDN (follows from above)
+- All Disbs are not released (in edit state)
+ 
+On release (or the attempt), we expect the following
+- Dialog message displaying the validation rule we're violating
+ 
+No state change expected in the table (CDS_DISB_Z or CDT_DISB)","Step 1: Release Disbursements with violation- Attach rule to matter via Entity Manager- Create disbursements that violate the rule. Save disbs.- Select the created disbursement. | Expected: Release button is enabled.Click Release button - Prompted with validation error, disbursement is not released. || Step 2: Release Multiple Disbursements with violation- Attach rule to matter via Entity Manager- Create multiple disbursements that violate the rule. Save disbs.- Select the created disbursements. | Expected: Release button is enabled.Click Release button - Prompted with validation error, disbursement is not released.Each disbursements have their own alert message in Recent Activity."
+177902,Release Unrelease Session - Validation,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Sessions,2017-09-21T01:48:57.75Z,,Step 1: Pre reqA Disbursement Session with 2 disbursement records. || Step 2: Release Disbursement Sesssion | Expected: CDS_DISB_Z.status = 'R'All related CDT_DISB records status = 'R'Session is not editable.Disbursment status updated on grid. || Step 3: Unrelease Disbursement Sesssion | Expected: CDS_DISB_Z.status = 'E'All related CDT_DISB records status = 'E'Session is editable.Disbursment status updated on grid.
+177906,Edit List - Session - Report requirement,Closed,ExpertSuite\Financials\Expert Disbursements\Reports\Edit List Report,2017-09-21T02:00:23.813Z,"A likely scenario, hence Base test Priority 3.
+ 
+In this situation, a user must satisfy the Edit list requirements
+(note: The above was from Client Disbursements -> Dibursement setup -> Parameters)
+ 
+Or on the employee itself:
+
+There are equivalent in places where you can set this in WPF world (Expert Administration, Entity Manager), but the above were pretty straightforward places to set this.
+ 
+If the requirement is met, the user CAN initiate release
+ 
+If the requirement is not met, the user is show a dialog.
+ 
+In order to satisfy the edit list report requirement in Expert, you do something...to finish.
+ 
+Note: In classic users can unrelease sessions even if edit list is required and the session hasn't been printed (makes sense to me). We should clarify with Dave to see if this makes sense in Expert too.
+Test the above assumption works as expected in Expert.
+ 
+Testing Approach
+ 
+Repeat the below approach for these scenarios:
+- Edit list required set in Disbursement parameters
+- Edit list required set on the user, but not in the disbursement parameters
+ 
+When an edit list has been printed, the CDS_DISB_Z row is updated:
+ 
+update CDS_DISB_Z set PRINTED = 'Y', LAST_MODIFIED = getdate() where SESSION=70                                                                      
+Given we're blocked by 176433, we'll have to use SQL to update the session in order to test this.",Step 1: see Summary for test
+177913,Expert Disb: Security - CreateDisbursement,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\New Disb,2017-09-21T02:12:50.863Z,This is to ensure that the create new disbursement screen looks and acts correctly.Wiki: https://aderant.sharepoint.com/RD/AP/Disbursements%20Wiki/Disbursement%20Entry%20Screen.aspx,"Step 1: Log in as user that does not have Disbursements.CreateDisbursement set up in Security Manager. | Expected: If they can get into the app, they won't be able to create a disbursement. Button will be grayed out. user also cannot create and edit disbursement in Session, either from the form or via inline edit. || Step 2: Log in as a user that has permissions and Create a new Disbursement from the main Disbursement tab. (Screen layout is attached.) | Expected: Session field will be 0. Review the database: select * from CDT_Disb order by LAST_MODIFIED desc. The newly create Disbursement should have data correct, including ED_Initiated field set to 'Y' and Expert_Disb_Status field set to 'E'. || Step 3: Log in as a user that has permissions and Click New Disbursement and check to make sure that the 'Save & Close' and 'Save & Add' are disabled until required fields are filled out. | Expected: Client/Matter, Disb Code, Office and Currency are all required. Currency will fill in if the Office has a default currency. Employee will be required if the Disb Code is set up to require it. (Meals is usually one that requires it."
+177965,Release Unrelease Disb - Disb with Alert and Rule Violations,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Release Unrelease Disb,2017-09-21T21:29:49.35Z,"Check with just one disbursement with an alert
+Also check multiple disbursements with a single alert, and multiple alerts, too.
+ 
+Assumptions are:
+- User has security
+- All disbs are ED initiated
+- Source tran type = CDN (follows from above)
+- All Disbs are not released (in edit state)
+ 
+On release (or the attempt), we expect the following
+- Dialog message displaying the validation rule we're violating
+ 
+No state change expected in the table (CDS_DISB_Z or CDT_DISB)
+ 
+ Testing approach
+ 
+We can use Design Studio to enable some rules e.g. DI0003 - Minimum characters for disbursement narrative. 
+Set this rule to active, then edit a disbursement to trigger this rule violation (setting narrative to empty).
+Then attempt to release the disbursement.
+ 
+Clear the rule violation, then attempt to unrelease - we expect same response on unreleasing? Confirm with Dave.","Step 1: Release Disbursement with violation- Attach rule to matter via Entity Manager- Create disbursement that violates the rule. Save disb. | Expected: Release button is enabled.Click Release button - Prompted with validation error, disbursement is not released.Bug 271111 - Disb Release and Post: Release and Post buttons should not be enabled when the disbursement has errors || Step 2: Release Multiple Disbursements with violation- Attach rule to matter via Entity Manager- Create disbursements that violate the rule. Save disbs.- Select the created disbursements. | Expected: Release button is enabled.Click Release button - Prompted with validation error, disbursement is not released.Each disbursements have their own alert message in Recent Activity.Bug 271111 - Disb Release and Post: Release and Post buttons should not be enabled when the disbursement has errors"
+177970,Release Unrelease Disb - General,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\Release Unrelease Disb,2017-09-21T21:42:10.627Z,"Test plan for all disbursement release/unrelease test cases
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+Test Multi here
+Test Multi here too
+
+
+
+
+
+Users can't release disbs created outside Expert Disbursement
+Users can't release disbs with Alerts / rule violations
+Users can release / unrelease disbs created in Expert Disbursement
+Users without Session Release disbursement security policy cannot release disbursements
+Edit List report requirement needs to be met before user can release disbursements
+
+
+
+
+
+
+
+
+
+
+ReleaseDisbursement
+Has
+Y
+Test
+Test
+Test
+
+Test
+
+
+Has not
+N
+
+
+
+Test
+
+
+ED initiated
+Yes
+Y
+
+Test
+Test
+
+Test
+
+
+NO
+N
+Test
+
+
+
+
+
+Disb Status
+E
+Y
+Test
+Test
+Test
+
+Test
+
+
+Not E
+N
+
+
+Test
+
+
+
+Source_tran_type
+CDN
+Y
+
+Test
+Test
+
+Test
+
+
+not CDN
+N
+Test
+
+
+
+
+
+CDT_MESSAGE table
+Nothing
+Y
+Test
+
+Test
+
+Test
+
+
+Has stuff
+N
+
+Test
+
+
+
+
+Is Released
+No
+Y
+Test
+Test
+Test
+
+Test
+
+
+Yes
+N
+
+
+Test
+
+
+
+
+
+
+
+
+
+
+
+
+Edit list Reports req
+Yes (both parameter and/or persnl)
+
+
+
+Test
+
+
+No
+
+Test
+Test
+Test
+Test
+
+ 
+This outline was copied from 177902. The content from this point is largely the same, except the tables we're looking at is CDT_DISB instead of CDS_DISB_Z
+ 
+Specifically for this test case though, we need to test that the sessions can be released / unreleased given some assumptions.
+We're not testing security, nor edit list report requirements, nor disbursements / sessions created outside Expert Disbursement. Pretty much the happy path test, hence Base test + Priority 1.
+ 
+Data checking happens here - we're going to compare with the output we've gotten from doing the same operation in classic.
+ 
+Testing approach
+ 
+Tables concerned: 
+CDT_DISB
+ 
+ Note that there is no equivalent scenario in classic, as disbursements must sit inside a session. Therefore we expect the same thing that happened for disbursement sessions to happen here (changing the CDT_DISB.EXPERT_DISB_STATUS value)
+ 
+Create a disbursement in Classic, and check the logs (CTRL + SHIFT + L)
+Create a disbursement inside Expert Disbursement, and check the CDT_DISB table. Compare the two entries - expect EXPERT_DISB_STATUS to be null for the classic entry. (Also ED_INITATED = null)
+ 
+Repeat the testing approach for the following scenarios:
+- Selecting single disbursement with edit status - User can release
+- Selecting multiple disbursements with edit status - user can release
+- Selecting multiple disbursements with released status - Users can unrelease
+- Selecting multiple disbursements with mixed status - no release / unrelease option is available
+ 
+Then release the disbursement. See what has changed in CDT_DISB - we expect EXPERT_DISB_STATUS to change to R
+ 
+Then unrelease the disbursement. See what has changed in CDT_DISB - we expect EXPERT_DISB_STATUS to changed back to E","Step 1: Release disb <> 'CDN' type and in Edit status | Expected: Release button disabled. || Step 2: Release when edit list required | Expected: Release button enabled. Clicking it pops up 'Edit List has not been printed' info. || Step 3: Release without security | Expected: Release button disabled. || Step 4: Release Classic created | Expected: Release button disabled || Step 5: Release released disb | Expected: Release button disabled, Unrelease button enabled."
+177972,Edit List - Disb - Report requirement,Closed,ExpertSuite\Financials\Expert Disbursements\Reports\Edit List Report,2017-09-21T21:45:15.55Z,"Note: Content below is copied from 177906 - it's the same thing except transposed into the disbursement scenario.
+ 
+A likely scenario, hence Base test Priority 3.
+ 
+In this situation, a user must satisfy the Edit list requirements
+(note: The above was from Client Disbursements -> Dibursement setup -> Parameters)
+ 
+Or on the employee itself:
+
+There are equivalent in places where you can set this in WPF world (Expert Administration, Entity Manager), but the above were pretty straightforward places to set this.
+ 
+If the requirement is met, the user CAN initiate release
+ 
+If the requirement is not met, the user is show a dialog.
+ 
+ 
+In order to satisfy the edit list report requirement in Expert, you do something... which will be known when 173426 is done.
+ 
+Note: In classic users can unrelease sessions even if edit list is required and the session hasn't been printed (makes sense to me). We should clarify with Dave to see if this makes sense in Expert too.
+ 
+Testing approach
+ 
+Repeat the below approach for these scenarios:
+- Edit list required set in Disbursement parameters
+- Edit list required set on the user, but not in the disbursement parameters
+ 
+ 
+At this point in time, we don't have the ability to go through the Edit List path. So we'll need to do some SQL magic:
+ 
+update CDT_DISB
+set EDIT_REPORT_PRINT_REF = 666
+where DISB_UNO = 3467
+ 
+You should be able to release the disbursement now.
+**Remember that after SQL script is run, you'll need to re-search for the disbursement in order to be able to release, as the returned object is still at the 'old state' of having 0 as the edit list reference number
+ 
+This will kick off a job:
+ 
+
+ select DISB_UNO, EXPERT_DISB_STATUS,ED_INITIATED, EDIT_REPORT_PRINT_REF,LAST_MODIFIED
+from CDT_DISB
+where DISB_UNO in (1861, 3467)
+ 
+EXPERT_DISB_STATUS should now update from E to R
+ 
+**Note that in order to unrelease, there are no other requirements except for the disbursement to be in the ""released"" state. We don't have to test this in this test case if short on time.",Step 1: See summary for test
+177973,Unposted Disb Edit - Open Existing Disb,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\New Disb,2017-09-21T21:50:00.17Z,This is to ensure that the Open screen looks and operates correctly.,"Step 1: Log in as user that does not have Disbursements.CreateDisbursement set up in Security Manager but make sure they have access to the application. Search for a Disbursement and click Open. | Expected: User can review the disbursement but cannot edit anything. || Step 2: Log in as a user that has permissions and Search and Open a Disbursement from the main Disbursement tab. (Screen layout is attached.) Make a change to any of the fields. | Expected: Session field will be 0. Review the database: select * from CDT_Disb order by LAST_MODIFIED desc. The newly create Disbursement should have data correct, including ED_Initiated field set to 'Y' and Expert_Disb_Status field set to 'E'. || Step 3: Search for disbursements and ensure there are multiple Disbursements in the grid. Highlight multiple disbursements. | Expected: Open button will be grayed out. Right Click will have the 'Open' option grayed out. || Step 4: Search for disbursements and ensure there are multiple Disbursements in the grid. Right click and select Export to Excel/Export All Rows. | Expected: There will be the same number in the Excel spreadsheet as exist in the list. || Step 5: Search for disbursements and ensure there are multiple Disbursements in the grid. Do a Ctrl+A to get all the rows, right click and select Export to Excel/Export Selected Rows. | Expected: There will be the same number in the Excel spreadsheet as exist in the list. || Step 6: Search for disbursements and ensure there are multiple Disbursements in the grid. Select several rows, right click and select Export to Excel/Export Selected Rows. | Expected: There will be the same number in the Excel spreadsheet as were selected in the list."
+178058,Disbursement created in Classic,Ready,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Unposted Disb\New Disb,2017-09-24T20:05:06Z,,"Step 1: Create a Disbursement in Classic using Disbursement Entry. | Expected: Review DB: select * from cdt_disb order by LAST_MODIFIED desc. ED_Initiated field should have 'N' || Step 2: Open Expert Disbursements and open the same disbursement. | Expected: Disbursement will be uneditable  and display the message: ""Warning: This disbursement was created in the Classic Disbursements application and cannot be edited in Expert Disbursements. If you wish to edit this disbursement, please use the Classic Disbursements application"""
+178080,Expert Disb: Create New Session Screen,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Sessions,2017-09-25T00:17:20.353Z,This is to ensure that the create new disbursement screen looks and acts correctly.Wiki: https://aderant.sharepoint.com/RD/AP/Disbursements%20Wiki/Disbursement%20Entry%20Screen.aspx,"Step 1: Log in as user that does not have Sessions.CreateDisbursement set up in Security Manager. | Expected: If they can get into the app, they won't be able to create a session. Button will be grayed out. || Step 2: Log in as a user that has permissions and Create a new Disbursement from the main Disbursement tab. (Screen layout is attached.) | Expected: Session field will match the number created. Review the database: select * from CDS_Disb order by LAST_MODIFIED desc. The newly create Session should have data correct, including ED_Initiated field set to 'Y' and Expert_Disb_Status field set to 'E'. || Step 3: Create a Disbursement on the new Session. | Expected: Review the database: select * from CDT_Disb order by LAST_MODIFIED desc. The newly create Disbursement should have data correct, including ED_Initiated field set to 'Y' and Expert_Disb_Status field set to 'E'. Session field will match the number created. || Step 4: Log in as a user that has permissions and Create a New Session. Create a new disbursement and check to make sure that the 'Save & Close' and 'Save & Add' are disabled until required fields are filled out. | Expected: Client/Matter, Disb Code, Office and Currency are all required. Currency will fill in if the Office has a default currency. Employee will be required if the Disb Code is set up to require it. (Meals is usually one that requires it."
+178260,Expert Disb: Deleting Pre-Posted Sessions,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Sessions,2017-09-27T02:12:55.637Z,This is to test that Deleting a Session will correctly delete all the referenced disbursements.Delete button should enable:- when one and only one session header is selected.- The session satisfy following sql:select * from CDS_DISB_Z where ED_INITIATED = 'Y' and STATUS = 'E',Step 1: This test case need to be run against 2 screens but contains the same result. @Session || Step 2: Create a Session with no Disbursements and Delete it. | Expected: In the database it should exist here when it is created: select * from cds_disb_z order by LAST_MODIFIED desc. It should be gone after the delete.Note: No Message will show up. || Step 3: Create a Session with One Disbursement and Delete the Session. | Expected: In the database the session should exist here when it is created: select * from cds_disb_z order by LAST_MODIFIED desc. It will still be there after the Disbursement is deleted.The Disbursements will exist here when created: select * from cdt_disb order by LAST_MODIFIED desc. The Disbursement deleted will be gone after the delete.   Note: Attached pop up shows up. || Step 4: Create a Session with Multiple Disbursements and Delete the Session. | Expected: In the database the session should exist here when it is created: select * from cds_disb_z order by LAST_MODIFIED desc. It will still be there after the Disbursement is deleted.The Disbursements will exist here when created: select * from cdt_disb order by LAST_MODIFIED desc. The Disbursement deleted will be gone after the delete.  Note: Attached pop up shows up || Step 5: Create a Session with Multiple Disbursements and Delete one of the Disbursements. | Expected: In the database the session should exist here when it is created: select * from cds_disb_z order by LAST_MODIFIED desc. It will still be there after the Disbursement is deleted.The Disbursements will exist here when created: select * from cdt_disb order by LAST_MODIFIED desc. The Disbursement deleted will be gone after the delete. || Step 6: Create a session with Multiple Disbursement and release at least one of the disbursements. | Expected: In the database the session should exist here when it is created: select * from cds_disb_z order by LAST_MODIFIED desc. It will still be there after the Disbursement is deleted.The Disbursements will exist here when created: select * from cdt_disb order by LAST_MODIFIED desc. The Disbursement deleted will be gone after the delete.   Note: Attached will show up. Deleting can't perform. || Step 7: Create a session with Multiple Disbursement and post at least one of the disbursements. | Expected: In the database the session should exist here when it is created: select * from cds_disb_z order by LAST_MODIFIED desc. It will still be there after the Disbursement is deleted.The Disbursements will exist here when created: select * from cdt_disb order by LAST_MODIFIED desc. The Disbursement deleted will be gone after the delete.   Note: Attached will show up. Deleting can't perform.
+178377,Admin - Grid Options,Closed,ExpertSuite\Financials\Expert Disbursements\Administration\Grid Options,2017-09-28T19:35:44.01Z,This story is to test the various options in Expert Administration where it relates to Expert Disbursements.,Step 1: Create and edit some Disbursement Sessions Grid Options and ensure that they show up in the Sessions List Screen. | Expected: Changes will show up in the application. || Step 2: Create and edit some Disbursement Sessions Disbursement Grid Options and ensure that they show up in the Sessions' Disbursement List Screen. | Expected: Changes will show up in the application.
+178380,Disbursements - Launch Application from Expert Assistant,Ready,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-28T20:03:11.943Z,,Step 1: Make sure the user does not have permissions to access Expert Disbursements. Open up Expert Assistant and select Actions. | Expected: Expert Disbursements will be an option (Not sure if it will be there or not with permissions until I test) and when double clicked it will not open the application. || Step 2: Give the user permissions to access Expert Disbursements. Open up Expert Assistant and select Actions. | Expected: Expert Disbursements will be an option and when double clicked it will open the application.
+178383,Expert Disb: New field for Statuses,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-28T20:57:18.123Z,This is to test the refactoring of Statuses in Expert disbursements. Classic is tested elsewhere.,"Step 1: Create a new disbursement in Expert Disb. | Expected: Expert_Disb_Status field will be 'E' and Ed_Initiated will be equal to 'Y' || Step 2: Create Disbursements in Classic. | Expected: Expert_Disb_Status field will be 'E' and Ed_Initiated will be equal to 'N' || Step 3: As you change their statuses in the system it should update the database accordingly. | Expected: Expert_Disb_Status field will be E (Edit), ​R (Released), ​W (WIP), ​P (Prebill), ​B (Billed), ​X (Cancelled)"
+178409,Expert Disb: New DB fields for Accounts Payable,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-29T00:19:07.337Z,,Step 1: Create a Disbursement in  Accounts Payable. (Go to Invoices and select New. After you fill out the Vendor information the Disbursements Tab at the bottom will be used to create new Disbursements.) | Expected: In the cdt_disb table the new fields will have the following values: ED_Initiated = 'Y' Expert_Disb_Status = 'E'. || Step 2: Edit the Disbursement and review the data in the DB. | Expected: New information will save.
+178410,Expert Disb: New DB Fields Billing,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-29T00:19:46.62Z,,Step 1: Create a Disbursement in Billing. | Expected: In the cdt_disb table the new fields will have the following values: ED_Initiated = 'Y' Expert_Disb_Status = 'P'. || Step 2: Edit the Disbursement and review the data in the DB. | Expected: New information will save. || Step 3: Release the Disbursement. | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'R'. || Step 4: Unrelease the Disbursement. | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'E'. || Step 5: Post the Disbursement. | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'W'. || Step 6: Create a Prebill | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'P'. || Step 7: Create a Bill | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'B'. || Step 8: Create a Disbursement then cancel it. | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'X'.
+178411,Expert Disb: New DB Fields Expert Disb,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-29T00:20:05.293Z,,Step 1: Create a Disbursement in Expert Disbursement. | Expected: In the cdt_disb table the new fields will have the following values: ED_Initiated = 'Y' Expert_Disb_Status = 'E'. || Step 2: Edit the Disbursement and review the data in the DB. | Expected: New information will save. || Step 3: Release the Disbursement. | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'R'. || Step 4: Unrelease the Disbursement. | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'E'. || Step 5: Post the Disbursement. | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'W'. || Step 6: Create a Prebill | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'P'. || Step 7: Create a Bill | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'B'. || Step 8: Create a Disbursement then cancel it. | Expected: In the cdt_disb table the new fields will have the following values: Expert_Disb_Status = 'X'.
+178412,Expert Disb: New DB Fields Expenses,Closed,ExpertSuite\Financials\Expert Disbursements\Infrastructure,2017-09-29T00:20:22.95Z,,Step 1: Create a Disbursement in Expenses. (Create a New Report. Add a new Receipt.) | Expected: In the cdt_disb table the new fields will have the following values: ED_Initiated = 'Y' Expert_Disb_Status = 'E'. || Step 2: Edit the Disbursement and review the data in the DB. | Expected: New information will save.
+178597,Expert Disb: Session List cannot edit Sessions created in Classic,Closed,ExpertSuite\Financials\Expert Disbursements\Application\Sessions,2017-10-03T03:05:07.73Z,,Step 1: Create a Session with several Disbursements in Classic. (Appshell/Disbursements/Disbursement Entry) View it in in Classic | Expected: User will not be able to Edit or change it in any way. || Step 2: Post the Session with all the Disbursements. | Expected: User will not be able to Edit or change it in any way.

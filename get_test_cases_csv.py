@@ -124,7 +124,7 @@ def fetch_and_export_test_cases(app_family_name, area_path):
             WHERE [System.TeamProject] = '{PROJECT}'
               AND [System.WorkItemType] = 'Test Case'
               AND [System.AreaPath] UNDER '{area_path}'
-            ORDER BY [System.Id] ASC
+            ORDER BY [System.CreatedDate] DESC
         """
     }
     
@@ -145,7 +145,7 @@ def fetch_and_export_test_cases(app_family_name, area_path):
     
     if response.status_code == 200:
         result = response.json()
-        work_items = result.get("workItems", [])  # Get all test cases, no limit
+        work_items = result.get("workItems", [])[:1500]  # Limit to 1500 test cases
         
         if not work_items:
             print(f"⚠ No test cases found for {app_family_name}")
