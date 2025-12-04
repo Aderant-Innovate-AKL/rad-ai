@@ -1,0 +1,3 @@
+Test Case ID,Title,State,Area,Created Date,Similarity Score,Reasoning,Duplicate Classification,Related Test IDs,Suggested Update
+160972,Payment Items - Trust: Add/Edit/Delete,Ready,ExpertSuite\Financials\Accounts Payable\Payments\Payment Items\Trust,2017-01-11T03:00:48.63Z,0.7030,High semantic similarity (0.703),DISTINCT,,
+188075,Payment - Post and Cancel: APA Trust fields,Ready,ExpertSuite\Financials\Accounts Payable\Payments\Payment Post and Cancel,2018-02-23T01:17:55.983Z,0.7006,High semantic similarity (0.701),DISTINCT,,

@@ -125,12 +125,21 @@ class TestCaseAgent:
             from agent.area_config import get_all_areas
             areas_to_load = get_all_areas()
         else:
-            # Load from top detected areas (top 2 if both have decent confidence)
+            # Load from top detected areas (require reasonable confidence)
             detected = detection_result['detected_areas']
-            areas_to_load = [detected[0]['area_name']]
             
-            if len(detected) > 1 and detected[1]['confidence'] > 0.15:
-                areas_to_load.append(detected[1]['area_name'])
+            # Only use top area if it has at least moderate confidence (2+ keyword matches)
+            if detected[0]['confidence'] >= 0.30 and detected[0]['matched_keywords'] >= 2:
+                areas_to_load = [detected[0]['area_name']]
+                
+                # Add second area if it also has good confidence
+                if len(detected) > 1 and detected[1]['confidence'] >= 0.35 and detected[1]['matched_keywords'] >= 3:
+                    areas_to_load.append(detected[1]['area_name'])
+            else:
+                # Confidence too low, load all areas
+                print(f"Low confidence detection (confidence: {detected[0]['confidence']:.3f}, matches: {detected[0]['matched_keywords']}), loading all test cases...")
+                from agent.area_config import get_all_areas
+                areas_to_load = get_all_areas()
         
         print(f"Loading test cases from: {', '.join(areas_to_load)}")
         
@@ -206,23 +215,23 @@ class TestCaseAgent:
         """
         thresholds = {
             'lenient': {
-                'min_similarity': 0.55,
-                'csv_export': 0.50,
-                'claude_analysis': 0.60
+                'min_similarity': 0.35,
+                'csv_export': 0.40,
+                'claude_analysis': 0.45
             },
             'moderate': {
-                'min_similarity': 0.70,
-                'csv_export': 0.65,
-                'claude_analysis': 0.70
+                'min_similarity': 0.50,
+                'csv_export': 0.50,
+                'claude_analysis': 0.55
             },
             'strict': {
-                'min_similarity': 0.80,
-                'csv_export': 0.75,
-                'claude_analysis': 0.80
+                'min_similarity': 0.65,
+                'csv_export': 0.60,
+                'claude_analysis': 0.70
             }
         }
         
-        return thresholds.get(strictness, thresholds['moderate'])
+        return thresholds.get(strictness, thresholds['lenient'])
     
     def compute_test_case_embeddings(self) -> Dict[str, np.ndarray]:
         """
@@ -245,7 +254,7 @@ class TestCaseAgent:
         bug_description: str,
         repro_steps: str,
         top_k: int = 20,
-        min_similarity: float = 0.70,
+        min_similarity: float = 0.35,
         apply_area_boost: bool = True
     ) -> List[Tuple[Dict[str, Any], float]]:
         """
@@ -255,7 +264,7 @@ class TestCaseAgent:
             bug_description: Description of the bug
             repro_steps: Reproduction steps for the bug
             top_k: Number of top similar test cases to return (default: 20)
-            min_similarity: Minimum similarity threshold (default: 0.70)
+            min_similarity: Minimum similarity threshold (default: 0.35)
             apply_area_boost: Whether to apply area-based similarity boosting (default: True)
             
         Returns:
@@ -530,7 +539,7 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
         Args:
             results: Results from analyze_bug_report()
             output_path: Path where CSV file should be saved
-            similarity_threshold: Minimum similarity score to include (default: 0.5)
+            similarity_threshold: Minimum similarity score to include
             
         Returns:
             Path to the created CSV file
@@ -639,9 +648,9 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
             reasoning_parts = []
             
             # Add similarity-based reasoning
-            if similarity_score >= 0.7:
+            if similarity_score >= 0.6:
                 reasoning_parts.append(f"High semantic similarity ({similarity_score:.3f})")
-            elif similarity_score >= 0.5:
+            elif similarity_score >= 0.45:
                 reasoning_parts.append(f"Moderate semantic similarity ({similarity_score:.3f})")
             else:
                 reasoning_parts.append(f"Related by semantic analysis ({similarity_score:.3f})")
@@ -694,7 +703,7 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
         auto_load: bool = True,
         output_format: str = 'dict',
         csv_output_path: Optional[str] = None,
-        similarity_threshold: float = 0.70,
+        similarity_threshold: Optional[float] = None,
         strictness: Literal['lenient', 'moderate', 'strict'] = 'moderate',
         apply_area_boost: bool = True
     ) -> Dict[str, Any]:
@@ -709,7 +718,7 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
             auto_load: If True and MCP is enabled, automatically detect and load test cases
             output_format: Output format - 'dict' or 'csv' (default: 'dict')
             csv_output_path: Path for CSV output (auto-generated if None and format='csv')
-            similarity_threshold: Minimum similarity score for CSV export (default: 0.70)
+            similarity_threshold: Minimum similarity score for CSV export (default: None, uses strictness setting)
             strictness: Filtering strictness level - 'lenient', 'moderate', or 'strict' (default: 'moderate')
             apply_area_boost: Whether to apply area-based similarity boosting (default: True)
             
@@ -742,9 +751,14 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
         min_similarity = thresholds['min_similarity']
         claude_threshold = thresholds['claude_analysis']
         
+        # Use strictness-based threshold for CSV export if not explicitly provided
+        if similarity_threshold is None:
+            similarity_threshold = thresholds['min_similarity']
+        
         print(f"\nUsing '{strictness}' strictness level:")
         print(f"  - Minimum similarity: {min_similarity:.2f}")
         print(f"  - Claude analysis threshold: {claude_threshold:.2f}")
+        print(f"  - CSV export threshold: {similarity_threshold:.2f}")
         print(f"  - Area boosting: {'enabled' if apply_area_boost else 'disabled'}\n")
         
         # Step 1: Find similar test cases using semantic search with strict filtering

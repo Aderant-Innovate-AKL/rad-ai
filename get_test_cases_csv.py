@@ -121,7 +121,7 @@ def fetch_and_export_test_cases(app_family_name, area_path):
         "query": f"""
             SELECT [System.Id], [System.Title], [System.State], [System.CreatedDate], [System.Description], [Microsoft.VSTS.TCM.Steps]
             FROM WorkItems
-            WHERE [System.TeamProject] = 'ExpertSuite'
+            WHERE [System.TeamProject] = '{PROJECT}'
               AND [System.WorkItemType] = 'Test Case'
               AND [System.AreaPath] UNDER '{area_path}'
             ORDER BY [System.Id] ASC
@@ -145,7 +145,7 @@ def fetch_and_export_test_cases(app_family_name, area_path):
     
     if response.status_code == 200:
         result = response.json()
-        work_items = result.get("workItems", [])[:400]  # First 400 only
+        work_items = result.get("workItems", [])  # Get all test cases, no limit
         
         if not work_items:
             print(f"⚠ No test cases found for {app_family_name}")
@@ -153,72 +153,83 @@ def fetch_and_export_test_cases(app_family_name, area_path):
         
         print(f"Found {len(work_items)} test cases...")
         
-        # Get details
-        ids = [str(wi["id"]) for wi in work_items]
-        ids_param = ",".join(ids)
+        # Get details in batches (TFS API has a limit of 200 IDs per request)
+        all_test_cases = []
+        batch_size = 200
         
-        details_url = f"{TFS_BASE_URL}/{COLLECTION}/{PROJECT}/_apis/wit/workitems?ids={ids_param}&fields=System.Id,System.Title,System.State,System.AreaPath,System.CreatedDate,System.Description,Microsoft.VSTS.TCM.Steps&api-version=4.1"
-        
-        try:
-            details_response = requests.get(details_url, headers=headers, timeout=30)
-        except requests.exceptions.Timeout:
-            print(f"✗ Timeout getting test case details")
-            return 0
-        except Exception as e:
-            print(f"✗ Error getting details: {str(e)[:100]}")
-            return 0
-        
-        if details_response.status_code == 200:
-            test_cases = details_response.json().get("value", [])
+        for i in range(0, len(work_items), batch_size):
+            batch = work_items[i:i + batch_size]
+            ids = [str(wi["id"]) for wi in batch]
+            ids_param = ",".join(ids)
             
-            # Create safe filename
-            safe_filename = app_family_name.lower().replace(" ", "_")
-            csv_file = f"test_cases_{safe_filename}.csv"
+            print(f"  Fetching batch {i//batch_size + 1}/{(len(work_items) + batch_size - 1)//batch_size} ({len(batch)} test cases)...")
             
-            # Write to CSV
-            with open(csv_file, "w", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f)
-                # Header
-                writer.writerow(["ID", "Title", "State", "Area", "Created Date", "Description", "Steps"])
+            details_url = f"{TFS_BASE_URL}/{COLLECTION}/{PROJECT}/_apis/wit/workitems?ids={ids_param}&fields=System.Id,System.Title,System.State,System.AreaPath,System.CreatedDate,System.Description,Microsoft.VSTS.TCM.Steps&api-version=4.1"
+            
+            try:
+                details_response = requests.get(details_url, headers=headers, timeout=60)
+            except requests.exceptions.Timeout:
+                print(f"✗ Timeout getting test case details for batch {i//batch_size + 1}")
+                continue
+            except Exception as e:
+                print(f"✗ Error getting details for batch {i//batch_size + 1}: {str(e)[:100]}")
+                continue
+            
+            if details_response.status_code == 200:
+                batch_test_cases = details_response.json().get("value", [])
+                all_test_cases.extend(batch_test_cases)
+            else:
+                print(f"✗ Error getting details for batch {i//batch_size + 1}: {details_response.status_code}")
+        
+        if not all_test_cases:
+            print(f"✗ No test case details retrieved")
+            return 0
+        
+        # Create safe filename
+        safe_filename = app_family_name.lower().replace(" ", "_")
+        csv_file = f"test_cases_{safe_filename}.csv"
+        
+        # Write to CSV
+        with open(csv_file, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            # Header
+            writer.writerow(["ID", "Title", "State", "Area", "Created Date", "Description", "Steps"])
+            
+            # Data
+            for tc in all_test_cases:
+                fields = tc.get("fields", {})
                 
-                # Data
-                for tc in test_cases:
-                    fields = tc.get("fields", {})
-                    
-                    # Get and clean description
-                    description = strip_html(fields.get("System.Description", ""))
-                    
-                    # Parse test steps
-                    steps_xml = fields.get("Microsoft.VSTS.TCM.Steps", "")
-                    steps = parse_test_steps(steps_xml)
-                    
-                    writer.writerow([
-                        fields.get("System.Id", ""),
-                        fields.get("System.Title", ""),
-                        fields.get("System.State", ""),
-                        fields.get("System.AreaPath", ""),
-                        fields.get("System.CreatedDate", ""),
-                        description,
-                        steps
-                    ])
-            
-            print(f"✓ Exported {len(test_cases)} test cases to {csv_file}")
-            
-            # Show sample
-            if test_cases:
-                print(f"\nFirst 3 entries:")
-                print("-" * 100)
-                for tc in test_cases[:3]:
-                    fields = tc.get("fields", {})
-                    description = strip_html(fields.get("System.Description", ""))
-                    desc_preview = description[:50] + "..." if len(description) > 50 else description
-                    title_preview = fields.get('System.Title', '')[:40] + "..." if len(fields.get('System.Title', '')) > 40 else fields.get('System.Title', '')
-                    print(f"{fields.get('System.Id')} | {title_preview} | {desc_preview}")
-            
-            return len(test_cases)
-        else:
-            print(f"✗ Error getting details: {details_response.status_code}")
-            return 0
+                # Get and clean description
+                description = strip_html(fields.get("System.Description", ""))
+                
+                # Parse test steps
+                steps_xml = fields.get("Microsoft.VSTS.TCM.Steps", "")
+                steps = parse_test_steps(steps_xml)
+                
+                writer.writerow([
+                    fields.get("System.Id", ""),
+                    fields.get("System.Title", ""),
+                    fields.get("System.State", ""),
+                    fields.get("System.AreaPath", ""),
+                    fields.get("System.CreatedDate", ""),
+                    description,
+                    steps
+                ])
+        
+        print(f"✓ Exported {len(all_test_cases)} test cases to {csv_file}")
+        
+        # Show sample
+        if all_test_cases:
+            print(f"\nFirst 3 entries:")
+            print("-" * 100)
+            for tc in all_test_cases[:3]:
+                fields = tc.get("fields", {})
+                description = strip_html(fields.get("System.Description", ""))
+                desc_preview = description[:50] + "..." if len(description) > 50 else description
+                title_preview = fields.get('System.Title', '')[:40] + "..." if len(fields.get('System.Title', '')) > 40 else fields.get('System.Title', '')
+                print(f"{fields.get('System.Id')} | {title_preview} | {desc_preview}")
+        
+        return len(all_test_cases)
     else:
         print(f"✗ Error querying test cases: {response.status_code}")
         if response.status_code == 401:

@@ -247,19 +247,21 @@ class TestCaseServer:
             # Count how many keywords from this area appear in the text
             matches = sum(1 for keyword in keywords if keyword.lower() in combined_text)
             
-            if matches > 0:
-                # Normalize by number of keywords in this area
-                confidence = matches / len(keywords)
+            # Require at least 2 keyword matches to consider an area relevant
+            if matches >= 2:
+                # Use absolute match count with diminishing returns for confidence
+                # This gives more weight to multiple strong matches
+                confidence = min(1.0, (matches * 0.15) + (matches * matches * 0.02))
                 area_scores[area_name] = {
                     'confidence': round(confidence, 3),
                     'matched_keywords': matches,
                     'total_keywords': len(keywords)
                 }
         
-        # Sort by confidence
+        # Sort by confidence (and by match count as tiebreaker)
         sorted_areas = sorted(
             area_scores.items(),
-            key=lambda x: x[1]['confidence'],
+            key=lambda x: (x[1]['confidence'], x[1]['matched_keywords']),
             reverse=True
         )
         
@@ -290,16 +292,18 @@ class TestCaseServer:
         
         top_area, top_scores = sorted_areas[0]
         
-        if top_scores['confidence'] > 0.3:
+        # High confidence: 3+ keyword matches (confidence >= 0.50)
+        if top_scores['confidence'] >= 0.50 and top_scores['matched_keywords'] >= 3:
             if len(sorted_areas) > 1:
                 second_area, second_scores = sorted_areas[1]
-                if second_scores['confidence'] > 0.2:
+                if second_scores['confidence'] >= 0.35:
                     return f"Load test cases from {top_area} and {second_area} (multi-area bug)"
-            return f"Load test cases from {top_area}"
-        elif len(sorted_areas) >= 2:
-            return f"Low confidence. Consider loading {top_area} or all areas."
+            return f"Load test cases from {top_area} (high confidence: {top_scores['matched_keywords']} keyword matches)"
+        # Moderate confidence: 2 keyword matches (confidence >= 0.30)
+        elif top_scores['confidence'] >= 0.30:
+            return f"Load test cases from {top_area} (moderate confidence: {top_scores['matched_keywords']} keyword matches)"
         else:
-            return "Low confidence. Consider loading all test cases."
+            return f"Low confidence ({top_scores['matched_keywords']} keyword matches). Consider loading all test cases."
     
     def get_statistics(self) -> Dict[str, Any]:
         """

@@ -17,6 +17,7 @@ import tempfile
 import requests
 import base64
 import re
+import json
 from dotenv import load_dotenv
 import anthropic
 
@@ -165,6 +166,15 @@ class PRSummaryResponse(BaseModel):
     total_files: int = Field(description="Total number of files changed")
 
 
+class ParsedBugContext(BaseModel):
+    """Response model for parsed bug context."""
+    bug_description: str = Field(description="Extracted bug description")
+    repro_steps: str = Field(description="Extracted reproduction steps")
+    code_changes: str = Field(description="Extracted/summarized code changes from PR")
+    confidence: str = Field(description="Confidence level of extraction: high, medium, low")
+    notes: str = Field(default="", description="Additional notes about the parsing")
+
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize the agent on startup"""
@@ -252,6 +262,121 @@ async def analyze_bug_report(request: BugReportRequest):
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 
+@app.post("/parse-bug-context", response_model=ParsedBugContext)
+async def parse_bug_context(
+    bug_info: str = Form(..., description="Raw bug information (title, description, repro steps)"),
+    pr_info: str = Form("", description="Raw PR information (title, summary, file changes)")
+):
+    """
+    Use Claude AI to intelligently parse and extract structured information from bug reports and PR changes.
+    
+    This endpoint acts as a preprocessing step before /analyze-bug, using LLM intelligence to:
+    - Extract clear bug descriptions from verbose bug reports
+    - Identify and format reproduction steps
+    - Summarize code changes from PR information
+    - Handle various input formats and structures
+    
+    Args:
+        bug_info: Raw bug information (can include title, description, repro steps in any format)
+        pr_info: Raw PR information (can include title, summary, file changes)
+        
+    Returns:
+        Structured bug context ready for analysis
+    """
+    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not anthropic_api_key:
+        raise HTTPException(
+            status_code=500,
+            detail="ANTHROPIC_API_KEY not configured in .env file"
+        )
+    
+    print("\n" + "="*80)
+    print("🤖 /parse-bug-context - Using Claude to extract structured information")
+    print("="*80)
+    
+    try:
+        client = anthropic.Anthropic(api_key=anthropic_api_key)
+        model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5")
+        
+        prompt = f"""You are an expert QA analyst. Extract structured information from the following bug report and PR information.
+
+BUG INFORMATION:
+{bug_info}
+
+PR/CODE CHANGES INFORMATION:
+{pr_info if pr_info else "No PR information provided"}
+
+Your task:
+1. Extract a clear, concise BUG DESCRIPTION (2-4 sentences describing what the bug is)
+2. Extract REPRODUCTION STEPS (numbered list of steps to reproduce the bug)
+3. Extract or summarize CODE CHANGES (what was changed to fix the bug, based on PR info)
+
+IMPORTANT:
+- If reproduction steps are not clearly stated, write "Reproduction steps not provided"
+- If code changes/PR info is missing, write "Code changes not provided"
+- Focus on clarity and conciseness
+- Remove any metadata like "BUG ID:", "TITLE:", etc. - just extract the content
+
+Provide your response in JSON format with these exact keys:
+{{
+  "bug_description": "Clear description of the bug",
+  "repro_steps": "Numbered reproduction steps or 'Reproduction steps not provided'",
+  "code_changes": "Summary of code changes or 'Code changes not provided'",
+  "confidence": "high/medium/low",
+  "notes": "Any additional notes about the extraction"
+}}"""
+        
+        message = client.messages.create(
+            model=model,
+            max_tokens=2048,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+        
+        response_text = message.content[0].text
+        
+        # Parse JSON response
+        try:
+            start_idx = response_text.find('{')
+            end_idx = response_text.rfind('}') + 1
+            if start_idx != -1 and end_idx > start_idx:
+                json_str = response_text[start_idx:end_idx]
+                parsed_data = json.loads(json_str)
+                
+                print(f"✓ Successfully parsed bug context")
+                print(f"  Confidence: {parsed_data.get('confidence', 'unknown')}")
+                print(f"  Bug Description: {parsed_data.get('bug_description', '')[:100]}...")
+                print("="*80 + "\n")
+                
+                return ParsedBugContext(
+                    bug_description=parsed_data.get('bug_description', ''),
+                    repro_steps=parsed_data.get('repro_steps', ''),
+                    code_changes=parsed_data.get('code_changes', ''),
+                    confidence=parsed_data.get('confidence', 'medium'),
+                    notes=parsed_data.get('notes', '')
+                )
+            else:
+                raise ValueError("No JSON found in response")
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"⚠ Warning: Could not parse JSON response: {e}")
+            # Fallback: return raw content with low confidence
+            return ParsedBugContext(
+                bug_description=bug_info[:500] if bug_info else "Could not extract bug description",
+                repro_steps="Reproduction steps not provided",
+                code_changes=pr_info[:500] if pr_info else "Code changes not provided",
+                confidence="low",
+                notes=f"Failed to parse LLM response: {str(e)}"
+            )
+    
+    except anthropic.APIError as e:
+        print(f"❌ Anthropic API error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI API error: {str(e)}")
+    except Exception as e:
+        print(f"❌ Error parsing bug context: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to parse bug context: {str(e)}")
+
+
 @app.post("/analyze-bug")
 async def analyze_bug(
     bug_description: str = Form(..., description="Description of the bug"),
@@ -284,6 +409,17 @@ async def analyze_bug(
     Returns:
         Comprehensive analysis including related tests, suggested updates, and duplicates
     """
+    # Print API inputs for debugging
+    print("\n" + "="*80)
+    print("📥 /analyze-bug API REQUEST INPUTS")
+    print("="*80)
+    print(f"Bug Description: {bug_description[:200]}{'...' if len(bug_description) > 200 else ''}")
+    print(f"Repro Steps: {repro_steps[:200]}{'...' if len(repro_steps) > 200 else ''}")
+    print(f"Code Changes: {code_changes[:200]}{'...' if len(code_changes) > 200 else ''}")
+    print(f"Top K: {top_k}")
+    print(f"CSV File: {csv_file.filename if csv_file else 'None (auto-detection mode)'}")
+    print("="*80 + "\n")
+    
     try:
         # Get agent instance
         agent_instance = get_agent()
@@ -305,6 +441,11 @@ async def analyze_bug(
                 print(f"Loading test cases from {csv_file.filename}...")
                 agent_instance.load_test_cases_from_csv(tmp_path)
                 
+                # Generate unique filename for CSV export
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                csv_filename = f"bug_analysis_{timestamp}.csv"
+                csv_path = os.path.join(os.getcwd(), csv_filename)
+                
                 # Run analysis with auto_load=False since we manually loaded
                 print("Running bug analysis...")
                 results = agent_instance.analyze_bug_report(
@@ -312,7 +453,9 @@ async def analyze_bug(
                     repro_steps=repro_steps,
                     code_changes=code_changes,
                     top_k=top_k,
-                    auto_load=False
+                    auto_load=False,
+                    output_format='csv',
+                    csv_output_path=csv_path
                 )
                 
             finally:
@@ -324,15 +467,29 @@ async def analyze_bug(
         else:
             # Auto-detection mode - let the agent detect and load relevant test cases
             print("Auto-detection mode: detecting relevant test cases...")
+            
+            # Generate unique filename for CSV export
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            csv_filename = f"bug_analysis_{timestamp}.csv"
+            csv_path = os.path.join(os.getcwd(), csv_filename)
+            
             results = agent_instance.analyze_bug_report(
                 bug_description=bug_description,
                 repro_steps=repro_steps,
                 code_changes=code_changes,
                 top_k=top_k,
-                auto_load=True
+                auto_load=True,
+                output_format='csv',
+                csv_output_path=csv_path
             )
         
         print("Analysis complete!")
+        
+        # Add CSV download information to the response
+        if 'csv_path' in results:
+            results['csv_filename'] = os.path.basename(results['csv_path'])
+            results['download_url'] = f"/download/{results['csv_filename']}"
+        
         return JSONResponse(content=results)
     
     except Exception as e:

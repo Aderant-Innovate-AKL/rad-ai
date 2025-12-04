@@ -55,6 +55,17 @@ interface AnalysisResponse {
     related_tests_found?: number;
     duplicates_found?: number;
   };
+  csv_path?: string;
+  csv_filename?: string;
+  download_url?: string;
+}
+
+interface ParsedBugContext {
+  bug_description: string;
+  repro_steps: string;
+  code_changes: string;
+  confidence: string;
+  notes: string;
 }
 
 export default function Home() {
@@ -133,19 +144,37 @@ export default function Home() {
     setAnalysisError(null);
 
     try {
-      // First, fetch the test cases CSV from the backend
-      const csvResponse = await fetch("http://localhost:8000/get-test-cases-csv");
-      if (!csvResponse.ok) {
-        throw new Error("Failed to fetch test cases. Please ensure test cases are available.");
+      // Step 1: Parse bug context using Claude AI
+      console.log("Step 1: Parsing bug context with AI...");
+      
+      const bugInfoText = formatBugInfoDisplay();
+      const prInfoText = prInfo ? formatPRInfoDisplay() : "";
+      
+      const parseFormData = new FormData();
+      parseFormData.append("bug_info", bugInfoText);
+      parseFormData.append("pr_info", prInfoText);
+      
+      const parseResponse = await fetch("http://localhost:8000/parse-bug-context", {
+        method: "POST",
+        body: parseFormData,
+      });
+      
+      if (!parseResponse.ok) {
+        const errorData = await parseResponse.json();
+        throw new Error(errorData.detail || "Failed to parse bug context");
       }
-      const csvBlob = await csvResponse.blob();
-      const csvFile = new File([csvBlob], "test_cases.csv", { type: "text/csv" });
-
+      
+      const parsedContext: ParsedBugContext = await parseResponse.json();
+      console.log("✓ Bug context parsed successfully");
+      console.log(`  Confidence: ${parsedContext.confidence}`);
+      
+      // Step 2: Use parsed context for test case analysis
+      console.log("Step 2: Analyzing test cases with parsed context...");
+      
       const formData = new FormData();
-      formData.append("csv_file", csvFile);
-      formData.append("bug_description", bugInfo.description || bugInfo.title);
-      formData.append("repro_steps", bugInfo.repro_steps || "");
-      formData.append("code_changes", prInfo?.summary || "No code changes provided");
+      formData.append("bug_description", parsedContext.bug_description);
+      formData.append("repro_steps", parsedContext.repro_steps);
+      formData.append("code_changes", parsedContext.code_changes);
       formData.append("top_k", "15");
 
       const response = await fetch("http://localhost:8000/analyze-bug", {
@@ -161,6 +190,7 @@ export default function Home() {
       const data = await response.json();
       setAnalysisResult(data);
       setShowModal(true);
+      console.log("✓ Analysis complete!");
     } catch (err) {
       setAnalysisError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -661,12 +691,28 @@ ${filesDisplay}
 
               {/* Modal Footer */}
               <div className="border-t border-slate-700 bg-slate-900/50 px-6 py-4">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="rounded-xl bg-slate-700 px-6 py-2 font-medium text-white transition-colors hover:bg-slate-600"
-                >
-                  Close
-                </button>
+                <div className="flex items-center justify-between">
+                  <div>
+                    {analysisResult.csv_filename && analysisResult.download_url && (
+                      <a
+                        href={`http://localhost:8000${analysisResult.download_url}`}
+                        download={analysisResult.csv_filename}
+                        className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2 font-medium text-white transition-colors hover:bg-emerald-500"
+                      >
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Download CSV Report
+                      </a>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="rounded-xl bg-slate-700 px-6 py-2 font-medium text-white transition-colors hover:bg-slate-600"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           </div>
