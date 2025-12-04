@@ -133,16 +133,8 @@ export default function Home() {
     setAnalysisError(null);
 
     try {
-      // First, fetch the test cases CSV from the backend
-      const csvResponse = await fetch("http://localhost:8000/get-test-cases-csv");
-      if (!csvResponse.ok) {
-        throw new Error("Failed to fetch test cases. Please ensure test cases are available.");
-      }
-      const csvBlob = await csvResponse.blob();
-      const csvFile = new File([csvBlob], "test_cases.csv", { type: "text/csv" });
-
+      // Use auto-detection mode - the backend will automatically detect relevant test cases
       const formData = new FormData();
-      formData.append("csv_file", csvFile);
       formData.append("bug_description", bugInfo.description || bugInfo.title);
       formData.append("repro_steps", bugInfo.repro_steps || "");
       formData.append("code_changes", prInfo?.summary || "No code changes provided");
