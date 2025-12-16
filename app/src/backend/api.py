@@ -182,9 +182,9 @@ async def startup_event():
     global agent
     try:
         agent = TestCaseAgent(use_mcp=True)
-        print("✓ Agent initialized successfully")
+        print("[OK] Agent initialized successfully")
     except Exception as e:
-        print(f"✗ Failed to initialize agent: {e}")
+        print(f"[FAIL] Failed to initialize agent: {e}")
         traceback.print_exc()
 
 
@@ -345,7 +345,7 @@ Provide your response in JSON format with these exact keys:
                 json_str = response_text[start_idx:end_idx]
                 parsed_data = json.loads(json_str)
                 
-                print(f"✓ Successfully parsed bug context")
+                print(f"[OK] Successfully parsed bug context")
                 print(f"  Confidence: {parsed_data.get('confidence', 'unknown')}")
                 print(f"  Bug Description: {parsed_data.get('bug_description', '')[:100]}...")
                 print("="*80 + "\n")
@@ -863,7 +863,7 @@ Keep the summary concise but informative."""
         )
         
         summary = message.content[0].text
-        print("✓ AI summary generated successfully")
+        print("[OK] AI summary generated successfully")
         
         return PRInfoResponse(
             pr_number=pr_number,
