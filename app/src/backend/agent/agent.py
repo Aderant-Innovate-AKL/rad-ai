@@ -2,7 +2,7 @@
 Test Case Analysis Agent
 
 This module provides an AI agent that analyzes bug reports and identifies related test cases,
-suggests updates, and detects duplicates using Anthropic Claude and semantic embeddings.
+suggests updates, and detects duplicates using Claude via AWS Bedrock and semantic embeddings.
 """
 
 import os
@@ -10,16 +10,16 @@ import csv
 import json
 from typing import List, Dict, Any, Tuple, Optional, Literal
 from pathlib import Path
-import anthropic
 import numpy as np
 from dotenv import load_dotenv
 import sys
 from sentence_transformers import SentenceTransformer
 
-# Add MCP server to path
+# Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
 
 from mcp.test_case_server import get_server, handle_tool_call
+from bedrock_client import invoke_claude, BEDROCK_MODEL_ID
 
 # Load environment variables
 load_dotenv()
@@ -29,25 +29,24 @@ class TestCaseAgent:
     """
     AI Agent for analyzing test cases against bug reports.
     
-    Uses Anthropic Claude for natural language understanding and reasoning,
+    Uses Claude via AWS Bedrock for natural language understanding and reasoning,
     and sentence transformers for semantic similarity matching.
     """
     
-    def __init__(self, api_key: str = None, use_mcp: bool = True, embedding_model: str = 'all-MiniLM-L6-v2'):
+    def __init__(self, bearer_token: str = None, use_mcp: bool = True, embedding_model: str = 'all-MiniLM-L6-v2'):
         """
         Initialize the agent with necessary models and configurations.
         
         Args:
-            api_key: Anthropic API key (defaults to ANTHROPIC_API_KEY env var)
+            bearer_token: AWS Bearer token (defaults to AWS_BEARER_TOKEN_BEDROCK env var)
             use_mcp: Whether to use MCP server for test case access (default: True)
             embedding_model: Name of sentence-transformers model to use (default: 'all-MiniLM-L6-v2')
         """
-        self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
-        if not self.api_key:
-            raise ValueError("Anthropic API key not provided")
+        self.bearer_token = bearer_token or os.getenv("AWS_BEARER_TOKEN_BEDROCK")
+        if not self.bearer_token:
+            raise ValueError("AWS Bearer token not provided. Set AWS_BEARER_TOKEN_BEDROCK in .env")
         
-        self.client = anthropic.Anthropic(api_key=self.api_key)
-        self.model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5")
+        self.model = BEDROCK_MODEL_ID
         
         # MCP integration
         self.use_mcp = use_mcp
@@ -359,15 +358,11 @@ Please analyze and provide:
 
 Provide your response in JSON format with these exact keys: related_tests, suggested_updates, new_test_cases, duplicate_tests."""
         
-        message = self.client.messages.create(
-            model=self.model,
+        response_text = invoke_claude(
+            messages=[{"role": "user", "content": prompt}],
             max_tokens=4096,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+            model_id=self.model
         )
-        
-        response_text = message.content[0].text
         
         # Try to parse JSON response
         try:
@@ -482,15 +477,11 @@ POTENTIAL DUPLICATE PAIRS:
 
 Respond in JSON format with: duplicate_groups (array of objects with pair_id, classification, reasoning, recommendation)."""
             
-            message = self.client.messages.create(
-                model=self.model,
+            response_text = invoke_claude(
+                messages=[{"role": "user", "content": prompt}],
                 max_tokens=4096,
-                messages=[
-                    {"role": "user", "content": prompt}
-                ]
+                model_id=self.model
             )
-            
-            response_text = message.content[0].text
             
             try:
                 start_idx = response_text.find('{')
@@ -688,10 +679,10 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
                 writer.writeheader()
                 writer.writerows(csv_rows)
             
-            print(f"\n✓ Exported {len(csv_rows)} test cases to: {output_path}")
+            print(f"\n[OK] Exported {len(csv_rows)} test cases to: {output_path}")
             return output_path
         else:
-            print(f"\n⚠ No test cases above similarity threshold ({similarity_threshold})")
+            print(f"\n[WARN] No test cases above similarity threshold ({similarity_threshold})")
             return None
     
     def analyze_bug_report(
@@ -730,7 +721,7 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
         if auto_load and self.use_mcp and len(self.test_cases) == 0:
             print("\nAuto-detecting relevant test cases...")
             load_result = self.detect_and_load_test_cases(bug_description, repro_steps)
-            print(f"✓ Loaded {load_result['test_cases_count']} test cases from {len(load_result['areas_loaded'])} area(s)")
+            print(f"[OK] Loaded {load_result['test_cases_count']} test cases from {len(load_result['areas_loaded'])} area(s)")
             print(f"  Recommendation: {load_result['recommendation']}\n")
         
         if len(self.test_cases) == 0:
@@ -774,7 +765,7 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
         high_confidence_tests = [(tc, score) for tc, score in similar_tests if score >= claude_threshold]
         
         if not high_confidence_tests:
-            print(f"⚠ Warning: No test cases above Claude analysis threshold ({claude_threshold:.2f})")
+            print(f"[WARN] No test cases above Claude analysis threshold ({claude_threshold:.2f})")
             if similar_tests:
                 print(f"  Found {len(similar_tests)} test cases above minimum threshold ({min_similarity:.2f})")
                 print(f"  Highest similarity: {similar_tests[0][1]:.3f}")
