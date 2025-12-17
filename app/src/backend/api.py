@@ -92,6 +92,29 @@ def get_github_headers():
     return headers
 
 
+def extract_bug_id_from_text(text: str) -> Optional[str]:
+    """Extract bug ID from text (looks for #number pattern).
+    
+    The bug ID is expected to be prefixed with # in the PR description.
+    Examples: #12345, #789, Bug #12345, Fixes #12345
+    
+    Returns the first bug ID found, or None if no bug ID is found.
+    """
+    if not text:
+        return None
+    
+    # Pattern to match bug IDs with # prefix
+    # Looks for # followed by digits (at least 1 digit)
+    # Avoids matching things like "#1" in commit hashes by requiring at least 3 digits for bug IDs
+    pattern = r'#(\d{3,})'
+    
+    matches = re.findall(pattern, text)
+    if matches:
+        return matches[0]  # Return the first bug ID found
+    
+    return None
+
+
 def extract_html_text(html_content: str) -> str:
     """Extract plain text from HTML content."""
     if not html_content:
@@ -156,6 +179,8 @@ class PRInfoResponse(BaseModel):
     total_additions: int = Field(description="Total lines added")
     total_deletions: int = Field(description="Total lines deleted")
     summary: str = Field(description="AI-generated summary of the PR changes")
+    bug_id: Optional[str] = Field(None, description="Bug ID extracted from PR description (if found)")
+    bug_info: Optional[BugInfoResponse] = Field(None, description="Bug information fetched from TFS (if bug_id found)")
 
 
 class PRSummaryResponse(BaseModel):
@@ -863,7 +888,47 @@ Keep the summary concise but informative."""
         )
         
         summary = message.content[0].text
-        print("✓ AI summary generated successfully")
+        print("[OK] AI summary generated successfully")
+        
+        # Extract bug ID from PR description
+        bug_id = extract_bug_id_from_text(pr_body)
+        bug_info = None
+        
+        if bug_id:
+            print(f"[OK] Found bug ID #{bug_id} in PR description")
+            # Try to fetch bug info from TFS
+            try:
+                if TFS_BASE_URL and TFS_COLLECTION and TFS_PROJECT and TFS_PAT:
+                    url = f"{TFS_BASE_URL}/{TFS_COLLECTION}/{TFS_PROJECT}/_apis/wit/workitems/{bug_id}?api-version=4.1&$expand=all"
+                    headers = get_tfs_headers()
+                    bug_response = requests.get(url, headers=headers, timeout=30)
+                    
+                    if bug_response.status_code == 200:
+                        work_item = bug_response.json()
+                        fields = work_item.get("fields", {})
+                        
+                        title = fields.get("System.Title", "No title")
+                        description_html = fields.get("System.Description", "") or fields.get("Microsoft.VSTS.TCM.ReproSteps", "") or ""
+                        repro_steps_html = fields.get("Microsoft.VSTS.TCM.ReproSteps", "") or ""
+                        
+                        description = extract_html_text(description_html)
+                        repro_steps = extract_html_text(repro_steps_html)
+                        
+                        bug_info = BugInfoResponse(
+                            bug_id=bug_id,
+                            title=title,
+                            description=description,
+                            repro_steps=repro_steps
+                        )
+                        print(f"[OK] Fetched bug info for #{bug_id}")
+                    else:
+                        print(f"[WARN] Could not fetch bug info for #{bug_id}: HTTP {bug_response.status_code}")
+                else:
+                    print("[WARN] TFS not configured, skipping bug info fetch")
+            except Exception as e:
+                print(f"[WARN] Error fetching bug info for #{bug_id}: {str(e)}")
+        else:
+            print("[INFO] No bug ID found in PR description")
         
         return PRInfoResponse(
             pr_number=pr_number,
@@ -873,7 +938,9 @@ Keep the summary concise but informative."""
             total_files=len(file_changes),
             total_additions=total_additions,
             total_deletions=total_deletions,
-            summary=summary
+            summary=summary,
+            bug_id=bug_id,
+            bug_info=bug_info
         )
         
     except requests.exceptions.Timeout:
