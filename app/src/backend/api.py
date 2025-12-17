@@ -19,7 +19,7 @@ import base64
 import re
 import json
 from dotenv import load_dotenv
-import anthropic
+from bedrock_client import get_claude_client, check_bedrock_configured, invoke_claude, get_bedrock_client
 
 # Load environment variables
 load_dotenv()
@@ -309,20 +309,18 @@ async def parse_bug_context(
     Returns:
         Structured bug context ready for analysis
     """
-    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not anthropic_api_key:
+    if not check_bedrock_configured():
         raise HTTPException(
             status_code=500,
-            detail="ANTHROPIC_API_KEY not configured in .env file"
+            detail="AWS_BEARER_TOKEN_BEDROCK not configured in .env file"
         )
     
     print("\n" + "="*80)
-    print("🤖 /parse-bug-context - Using Claude to extract structured information")
+    print("[AI] /parse-bug-context - Using Claude (Bedrock) to extract structured information")
     print("="*80)
     
     try:
-        client = anthropic.Anthropic(api_key=anthropic_api_key)
-        model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5")
+        client = get_claude_client()
         
         prompt = f"""You are an expert QA analyst. Extract structured information from the following bug report and PR information.
 
@@ -352,15 +350,10 @@ Provide your response in JSON format with these exact keys:
   "notes": "Any additional notes about the extraction"
 }}"""
         
-        message = client.messages.create(
-            model=model,
-            max_tokens=2048,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+        response_text = client.create_message(
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=2048
         )
-        
-        response_text = message.content[0].text
         
         # Parse JSON response
         try:
@@ -395,12 +388,13 @@ Provide your response in JSON format with these exact keys:
                 notes=f"Failed to parse LLM response: {str(e)}"
             )
     
-    except anthropic.APIError as e:
-        print(f"❌ Anthropic API error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"AI API error: {str(e)}")
     except Exception as e:
-        print(f"❌ Error parsing bug context: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to parse bug context: {str(e)}")
+        error_msg = str(e)
+        if "Bedrock" in error_msg:
+            print(f"[FAIL] Bedrock API error: {error_msg}")
+            raise HTTPException(status_code=500, detail=f"AI API error: {error_msg}")
+        print(f"[FAIL] Error parsing bug context: {error_msg}")
+        raise HTTPException(status_code=500, detail=f"Failed to parse bug context: {error_msg}")
 
 
 @app.post("/analyze-bug")
@@ -768,11 +762,10 @@ async def fetch_pr_info(pr_number: int):
             detail="GitHub configuration missing. Please set GITHUB_TOKEN, GITHUB_OWNER, and GITHUB_REPO in .env file"
         )
     
-    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not anthropic_api_key:
+    if not check_bedrock_configured():
         raise HTTPException(
             status_code=500,
-            detail="ANTHROPIC_API_KEY not configured in .env file"
+            detail="AWS_BEARER_TOKEN_BEDROCK not configured in .env file"
         )
     
     try:
@@ -875,19 +868,13 @@ Please provide:
 
 Keep the summary concise but informative."""
 
-        # Call Claude API
-        client = anthropic.Anthropic(api_key=anthropic_api_key)
-        model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5")
+        # Call Claude API via Bedrock
+        client = get_claude_client()
         
-        message = client.messages.create(
-            model=model,
-            max_tokens=2048,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+        summary = client.create_message(
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=2048
         )
-        
-        summary = message.content[0].text
         print("[OK] AI summary generated successfully")
         
         # Extract bug ID from PR description
@@ -947,8 +934,6 @@ Keep the summary concise but informative."""
         raise HTTPException(status_code=504, detail="GitHub request timed out")
     except requests.exceptions.ConnectionError:
         raise HTTPException(status_code=503, detail="Could not connect to GitHub")
-    except anthropic.APIError as e:
-        raise HTTPException(status_code=500, detail=f"AI API error: {str(e)}")
     except HTTPException:
         raise
     except Exception as e:
@@ -973,11 +958,10 @@ async def summarize_pr_changes(pr_number: int):
             detail="GitHub configuration missing. Please set GITHUB_TOKEN, GITHUB_OWNER, and GITHUB_REPO in .env file"
         )
     
-    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not anthropic_api_key:
+    if not check_bedrock_configured():
         raise HTTPException(
             status_code=500,
-            detail="ANTHROPIC_API_KEY not configured in .env file"
+            detail="AWS_BEARER_TOKEN_BEDROCK not configured in .env file"
         )
     
     try:
@@ -1055,19 +1039,13 @@ Please provide:
 
 Keep the summary concise but informative."""
 
-        # Call Claude API
-        client = anthropic.Anthropic(api_key=anthropic_api_key)
-        model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5")
+        # Call Claude API via Bedrock
+        client = get_claude_client()
         
-        message = client.messages.create(
-            model=model,
-            max_tokens=2048,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+        summary = client.create_message(
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=2048
         )
-        
-        summary = message.content[0].text
         
         return PRSummaryResponse(
             pr_number=pr_number,
@@ -1081,8 +1059,6 @@ Keep the summary concise but informative."""
         raise HTTPException(status_code=504, detail="GitHub request timed out")
     except requests.exceptions.ConnectionError:
         raise HTTPException(status_code=503, detail="Could not connect to GitHub")
-    except anthropic.APIError as e:
-        raise HTTPException(status_code=500, detail=f"AI API error: {str(e)}")
     except HTTPException:
         raise
     except Exception as e:
