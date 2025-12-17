@@ -1,6 +1,6 @@
 # Test Case Analysis API - Backend
 
-AI-powered test case analysis system using Anthropic Claude for analyzing bug reports and identifying related test cases.
+AI-powered test case analysis system using Claude via AWS Bedrock for analyzing bug reports and identifying related test cases.
 
 ## Features
 
@@ -27,10 +27,11 @@ Create a `.env` file in the backend directory:
 cp .env.example .env
 ```
 
-Add your Anthropic API key to `.env`:
+Add your AWS Bedrock credentials to `.env`:
 
 ```env
-ANTHROPIC_API_KEY=your_actual_api_key_here
+AWS_BEARER_TOKEN_BEDROCK=your_aws_bearer_token_here
+AWS_REGION=us-east-1
 ```
 
 ### 3. Run the Server
@@ -172,7 +173,7 @@ backend/
 
 ## Models Used
 
-- **LLM**: Anthropic Claude 3.5 Sonnet (claude-3-5-sonnet-20241022)
+- **LLM**: Claude 3.5 Sonnet via AWS Bedrock (anthropic.claude-3-5-sonnet-20241022-v2:0)
 - **Embeddings**: all-MiniLM-L6-v2 (via sentence-transformers)
 
 ## Performance Notes
@@ -184,8 +185,8 @@ backend/
 
 ## Troubleshooting
 
-### "Anthropic API key not provided"
-Make sure your `.env` file exists and contains a valid `ANTHROPIC_API_KEY`.
+### "AWS Bearer token not provided"
+Make sure your `.env` file exists and contains a valid `AWS_BEARER_TOKEN_BEDROCK`.
 
 ### "Module not found" errors
 Install all dependencies: `pip install -r requirements.txt`
