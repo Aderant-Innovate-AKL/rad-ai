@@ -97,7 +97,7 @@ def invoke_claude(
     except requests.exceptions.ConnectionError as e:
         raise Exception(f"Could not connect to Bedrock: {str(e)}")
     except Exception as e:
-        if "Bedrock" in str(e):
+        if "Bedrock" in str(e) or isinstance(e, Exception):
             raise
         raise Exception(f"Bedrock API error: {str(e)}")
 

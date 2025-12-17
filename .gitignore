@@ -32,3 +32,4 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+app/src/backend/__pycache__/api.cpython-312.pyc

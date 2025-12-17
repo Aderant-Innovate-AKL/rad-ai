@@ -6,6 +6,11 @@ To surface and link related TFS test cases that match/relate to changes made in 
 - Load the extracted test cases into MCP server.
 - Looks at bug description (repro steps), PR description, AI summary of the PR and files changed, and use AI LLM Agent to match against the data from MCP server.
 - Gives a list of related test cases and asks for user review. Once reviewed, it can link test cases (use test case id to find TFS item) to the bug.
+
+
+Improvements:
+1. also could link Leapwork UI Test cases to selectively run only relevant test cases
+2. Index the test cases based on date created to bring most recent on top
  
 ## Problem we are solving:
 Due to test cases being widely scattered in many different folders. It is difficult for QAs to find affected test cases for a specific bug which leads to missing out on testing edge cases and unusual scenarios.
