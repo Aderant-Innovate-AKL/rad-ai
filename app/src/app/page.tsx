@@ -112,7 +112,13 @@ export default function Home() {
 
   const handleAnalyzeTestCases = async () => {
     if (!bugInfo) {
-      setAnalysisError("Please fetch a PR that contains a bug ID (e.g., #12345) in its description");
+      if (bugId) {
+        // Bug ID was found but TFS fetch failed
+        setAnalysisError(`Bug #${bugId} was found in PR description, but failed to fetch bug details from TFS. Check TFS connectivity or configuration.`);
+      } else {
+        // No bug ID found in PR description
+        setAnalysisError("Please fetch a PR that contains a bug ID (e.g., #12345) in its description");
+      }
       return;
     }
 
@@ -300,16 +306,20 @@ ${filesDisplay}
                     value={
                       bugInfo
                         ? formatBugInfoDisplay()
-                        : prInfo && !bugId
-                          ? "No bug ID found in PR description.\nPR descriptions should contain a bug ID with # prefix (e.g., #12345)"
-                          : "Bug details will appear here after fetching PR info..."
+                        : prInfo && bugId
+                          ? `Bug #${bugId} was found in PR description, but failed to fetch details from TFS.\n\nPossible causes:\n• TFS server is not reachable\n• TFS credentials are not configured\n• Bug ID does not exist in TFS`
+                          : prInfo && !bugId
+                            ? "No bug ID found in PR description.\nPR descriptions should contain a bug ID with # prefix (e.g., #12345)"
+                            : "Bug details will appear here after fetching PR info..."
                     }
                     className={`h-96 w-full resize-none rounded-xl border bg-slate-900/70 px-5 py-4 font-mono text-sm leading-relaxed outline-none transition-all ${
                       bugInfo
                         ? "border-blue-500/30 text-slate-300"
-                        : prInfo && !bugId
-                          ? "border-amber-500/50 text-amber-400"
-                          : "border-slate-600 text-slate-500"
+                        : prInfo && bugId
+                          ? "border-red-500/50 text-red-400"
+                          : prInfo && !bugId
+                            ? "border-amber-500/50 text-amber-400"
+                            : "border-slate-600 text-slate-500"
                     }`}
                   />
                 </div>

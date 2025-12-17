@@ -32,4 +32,5 @@ Thumbs.db
 *.log
 npm-debug.log*
 
-app/src/backend/__pycache__/api.cpython-312.pyc
+# Generated analysis output files
+app/src/backend/bug_analysis_*.csv
