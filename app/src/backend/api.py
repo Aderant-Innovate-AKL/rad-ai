@@ -19,6 +19,7 @@ import base64
 import re
 import json
 from dotenv import load_dotenv
+from bedrock_client import get_claude_client, check_bedrock_configured, invoke_claude, get_bedrock_client
 
 # Load environment variables
 load_dotenv()
@@ -92,6 +93,29 @@ def get_github_headers():
     return headers
 
 
+def extract_bug_id_from_text(text: str) -> Optional[str]:
+    """Extract bug ID from text (looks for #number pattern).
+    
+    The bug ID is expected to be prefixed with # in the PR description.
+    Examples: #12345, #789, Bug #12345, Fixes #12345
+    
+    Returns the first bug ID found, or None if no bug ID is found.
+    """
+    if not text:
+        return None
+    
+    # Pattern to match bug IDs with # prefix
+    # Looks for # followed by digits (at least 1 digit)
+    # Avoids matching things like "#1" in commit hashes by requiring at least 3 digits for bug IDs
+    pattern = r'#(\d{3,})'
+    
+    matches = re.findall(pattern, text)
+    if matches:
+        return matches[0]  # Return the first bug ID found
+    
+    return None
+
+
 def extract_html_text(html_content: str) -> str:
     """Extract plain text from HTML content."""
     if not html_content:
@@ -156,6 +180,8 @@ class PRInfoResponse(BaseModel):
     total_additions: int = Field(description="Total lines added")
     total_deletions: int = Field(description="Total lines deleted")
     summary: str = Field(description="AI-generated summary of the PR changes")
+    bug_id: Optional[str] = Field(None, description="Bug ID extracted from PR description (if found)")
+    bug_info: Optional[BugInfoResponse] = Field(None, description="Bug information fetched from TFS (if bug_id found)")
 
 
 class PRSummaryResponse(BaseModel):
@@ -284,18 +310,19 @@ async def parse_bug_context(
     Returns:
         Structured bug context ready for analysis
     """
-    bearer_token = os.getenv("AWS_BEARER_TOKEN_BEDROCK")
-    if not bearer_token:
+    if not check_bedrock_configured():
         raise HTTPException(
             status_code=500,
             detail="AWS_BEARER_TOKEN_BEDROCK not configured in .env file"
         )
     
     print("\n" + "="*80)
-    print("[AI] /parse-bug-context - Using Claude via Bedrock to extract structured information")
+    print("[AI] /parse-bug-context - Using Claude (Bedrock) to extract structured information")
     print("="*80)
     
     try:
+        client = get_claude_client()
+        
         prompt = f"""You are an expert QA analyst. Extract structured information from the following bug report and PR information.
 
 BUG INFORMATION:
@@ -324,7 +351,7 @@ Provide your response in JSON format with these exact keys:
   "notes": "Any additional notes about the extraction"
 }}"""
         
-        response_text = invoke_claude(
+        response_text = client.create_message(
             messages=[{"role": "user", "content": prompt}],
             max_tokens=2048
         )
@@ -363,8 +390,12 @@ Provide your response in JSON format with these exact keys:
             )
     
     except Exception as e:
-        print(f"[ERROR] Error parsing bug context: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"AI API error: {str(e)}")
+        error_msg = str(e)
+        if "Bedrock" in error_msg:
+            print(f"[FAIL] Bedrock API error: {error_msg}")
+            raise HTTPException(status_code=500, detail=f"AI API error: {error_msg}")
+        print(f"[FAIL] Error parsing bug context: {error_msg}")
+        raise HTTPException(status_code=500, detail=f"Failed to parse bug context: {error_msg}")
 
 
 @app.post("/analyze-bug")
@@ -732,8 +763,7 @@ async def fetch_pr_info(pr_number: int):
             detail="GitHub configuration missing. Please set GITHUB_TOKEN, GITHUB_OWNER, and GITHUB_REPO in .env file"
         )
     
-    bearer_token = os.getenv("AWS_BEARER_TOKEN_BEDROCK")
-    if not bearer_token:
+    if not check_bedrock_configured():
         raise HTTPException(
             status_code=500,
             detail="AWS_BEARER_TOKEN_BEDROCK not configured in .env file"
@@ -839,12 +869,54 @@ Please provide:
 
 Keep the summary concise but informative."""
 
-        # Call Claude via Bedrock
-        summary = invoke_claude(
+        # Call Claude API via Bedrock
+        client = get_claude_client()
+        
+        summary = client.create_message(
             messages=[{"role": "user", "content": prompt}],
             max_tokens=2048
         )
         print("[OK] AI summary generated successfully")
+        
+        # Extract bug ID from PR description
+        bug_id = extract_bug_id_from_text(pr_body)
+        bug_info = None
+        
+        if bug_id:
+            print(f"[OK] Found bug ID #{bug_id} in PR description")
+            # Try to fetch bug info from TFS
+            try:
+                if TFS_BASE_URL and TFS_COLLECTION and TFS_PROJECT and TFS_PAT:
+                    url = f"{TFS_BASE_URL}/{TFS_COLLECTION}/{TFS_PROJECT}/_apis/wit/workitems/{bug_id}?api-version=4.1&$expand=all"
+                    headers = get_tfs_headers()
+                    bug_response = requests.get(url, headers=headers, timeout=30)
+                    
+                    if bug_response.status_code == 200:
+                        work_item = bug_response.json()
+                        fields = work_item.get("fields", {})
+                        
+                        title = fields.get("System.Title", "No title")
+                        description_html = fields.get("System.Description", "") or fields.get("Microsoft.VSTS.TCM.ReproSteps", "") or ""
+                        repro_steps_html = fields.get("Microsoft.VSTS.TCM.ReproSteps", "") or ""
+                        
+                        description = extract_html_text(description_html)
+                        repro_steps = extract_html_text(repro_steps_html)
+                        
+                        bug_info = BugInfoResponse(
+                            bug_id=bug_id,
+                            title=title,
+                            description=description,
+                            repro_steps=repro_steps
+                        )
+                        print(f"[OK] Fetched bug info for #{bug_id}")
+                    else:
+                        print(f"[WARN] Could not fetch bug info for #{bug_id}: HTTP {bug_response.status_code}")
+                else:
+                    print("[WARN] TFS not configured, skipping bug info fetch")
+            except Exception as e:
+                print(f"[WARN] Error fetching bug info for #{bug_id}: {str(e)}")
+        else:
+            print("[INFO] No bug ID found in PR description")
         
         return PRInfoResponse(
             pr_number=pr_number,
@@ -854,7 +926,9 @@ Keep the summary concise but informative."""
             total_files=len(file_changes),
             total_additions=total_additions,
             total_deletions=total_deletions,
-            summary=summary
+            summary=summary,
+            bug_id=bug_id,
+            bug_info=bug_info
         )
         
     except requests.exceptions.Timeout:
@@ -885,8 +959,7 @@ async def summarize_pr_changes(pr_number: int):
             detail="GitHub configuration missing. Please set GITHUB_TOKEN, GITHUB_OWNER, and GITHUB_REPO in .env file"
         )
     
-    bearer_token = os.getenv("AWS_BEARER_TOKEN_BEDROCK")
-    if not bearer_token:
+    if not check_bedrock_configured():
         raise HTTPException(
             status_code=500,
             detail="AWS_BEARER_TOKEN_BEDROCK not configured in .env file"
@@ -967,8 +1040,10 @@ Please provide:
 
 Keep the summary concise but informative."""
 
-        # Call Claude via Bedrock
-        summary = invoke_claude(
+        # Call Claude API via Bedrock
+        client = get_claude_client()
+        
+        summary = client.create_message(
             messages=[{"role": "user", "content": prompt}],
             max_tokens=2048
         )

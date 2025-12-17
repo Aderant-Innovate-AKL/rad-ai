@@ -2,7 +2,7 @@
 Test Case Analysis Agent
 
 This module provides an AI agent that analyzes bug reports and identifies related test cases,
-suggests updates, and detects duplicates using Claude via AWS Bedrock and semantic embeddings.
+suggests updates, and detects duplicates using Claude (via AWS Bedrock) and semantic embeddings.
 """
 
 import os
@@ -15,11 +15,11 @@ from dotenv import load_dotenv
 import sys
 from sentence_transformers import SentenceTransformer
 
-# Add parent directory to path for imports
+# Add parent to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
 
 from mcp.test_case_server import get_server, handle_tool_call
-from bedrock_client import invoke_claude, BEDROCK_MODEL_ID
+from bedrock_client import get_claude_client, check_bedrock_configured, BedrockClaudeClient
 
 # Load environment variables
 load_dotenv()
@@ -33,20 +33,18 @@ class TestCaseAgent:
     and sentence transformers for semantic similarity matching.
     """
     
-    def __init__(self, bearer_token: str = None, use_mcp: bool = True, embedding_model: str = 'all-MiniLM-L6-v2'):
+    def __init__(self, use_mcp: bool = True, embedding_model: str = 'all-MiniLM-L6-v2'):
         """
         Initialize the agent with necessary models and configurations.
         
         Args:
-            bearer_token: AWS Bearer token (defaults to AWS_BEARER_TOKEN_BEDROCK env var)
             use_mcp: Whether to use MCP server for test case access (default: True)
             embedding_model: Name of sentence-transformers model to use (default: 'all-MiniLM-L6-v2')
         """
-        self.bearer_token = bearer_token or os.getenv("AWS_BEARER_TOKEN_BEDROCK")
-        if not self.bearer_token:
-            raise ValueError("AWS Bearer token not provided. Set AWS_BEARER_TOKEN_BEDROCK in .env")
+        if not check_bedrock_configured():
+            raise ValueError("AWS_BEARER_TOKEN_BEDROCK not configured")
         
-        self.model = BEDROCK_MODEL_ID
+        self.client: BedrockClaudeClient = get_claude_client()
         
         # MCP integration
         self.use_mcp = use_mcp
@@ -358,10 +356,9 @@ Please analyze and provide:
 
 Provide your response in JSON format with these exact keys: related_tests, suggested_updates, new_test_cases, duplicate_tests."""
         
-        response_text = invoke_claude(
+        response_text = self.client.create_message(
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=4096,
-            model_id=self.model
+            max_tokens=4096
         )
         
         # Try to parse JSON response
@@ -477,10 +474,9 @@ POTENTIAL DUPLICATE PAIRS:
 
 Respond in JSON format with: duplicate_groups (array of objects with pair_id, classification, reasoning, recommendation)."""
             
-            response_text = invoke_claude(
+            response_text = self.client.create_message(
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=4096,
-                model_id=self.model
+                max_tokens=4096
             )
             
             try:

@@ -1,4 +1,0 @@
-Test Case ID,Title,State,Area,Created Date,Similarity Score,Reasoning,Duplicate Classification,Related Test IDs,Suggested Update
-180679,Expert Disb: Security: Disbursements - PostDisbursements user rights,Ready,ExpertSuite\Financials\Expert Disbursements\Security,2017-10-30T19:49:47.713Z,0.7188,High semantic similarity (0.719),DISTINCT,,
-182875,Expert Disb: Split Multiple: Disbursement: Amount: Non-System Currency (Multi-currency),Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:08:49.917Z,0.7070,High semantic similarity (0.707),OVERLAPPING,182873,
-182873,Expert Disb: Split Once: Disbursement: Amount: Non-System Currency (Multi-currency),Closed,ExpertSuite\Financials\Expert Disbursements\Application\Disbursements\Posted Disb\Split Disb,2017-11-21T20:08:02.27Z,0.7024,High semantic similarity (0.702),OVERLAPPING,182875,

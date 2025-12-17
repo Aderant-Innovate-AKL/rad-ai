@@ -26,6 +26,8 @@ interface PRInfo {
   total_additions: number;
   total_deletions: number;
   summary: string;
+  bug_id?: string;
+  bug_info?: BugInfo;
 }
 
 interface TestCaseData {
@@ -69,43 +71,18 @@ interface ParsedBugContext {
 }
 
 export default function Home() {
-  const [bugId, setBugId] = useState("");
   const [prId, setPrId] = useState("");
-  const [bugInfo, setBugInfo] = useState<BugInfo | null>(null);
   const [prInfo, setPrInfo] = useState<PRInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeAction, setActiveAction] = useState<string | null>(null);
-  const [bugError, setBugError] = useState<string | null>(null);
   const [prError, setPrError] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
 
-  const handleFetchBugInfo = async () => {
-    if (!bugId.trim()) return;
-    setIsLoading(true);
-    setActiveAction("fetchBug");
-    setBugError(null);
-
-    try {
-      const response = await fetch(
-        `http://localhost:8000/fetch-bug-info/${encodeURIComponent(bugId.trim())}`
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to fetch bug info");
-      }
-
-      const data = await response.json();
-      setBugInfo(data);
-    } catch (err) {
-      setBugError(err instanceof Error ? err.message : "An error occurred");
-      setBugInfo(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Get bug info from PR response (auto-extracted from PR description)
+  const bugInfo = prInfo?.bug_info || null;
+  const bugId = prInfo?.bug_id || null;
 
   const handleFetchPRInfo = async () => {
     if (!prId.trim()) return;
@@ -135,7 +112,13 @@ export default function Home() {
 
   const handleAnalyzeTestCases = async () => {
     if (!bugInfo) {
-      setAnalysisError("Please fetch bug info first");
+      if (bugId) {
+        // Bug ID was found but TFS fetch failed
+        setAnalysisError(`Bug #${bugId} was found in PR description, but failed to fetch bug details from TFS. Check TFS connectivity or configuration.`);
+      } else {
+        // No bug ID found in PR description
+        setAnalysisError("Please fetch a PR that contains a bug ID (e.g., #12345) in its description");
+      }
       return;
     }
 
@@ -264,64 +247,43 @@ ${filesDisplay}
             Test Link AI
           </h1>
           <p className="max-w-md text-lg text-slate-400">
-            Enter a bug ID or PR number to fetch details and analyze test cases
+            Enter a PR number to fetch details and analyze test cases.
+            Bug ID will be extracted automatically from PR description (e.g., #12345)
           </p>
         </div>
 
         {/* Main Card */}
         <div className="w-full max-w-6xl">
           <div className="rounded-2xl border border-slate-700/50 bg-slate-800/50 p-8 shadow-2xl backdrop-blur-sm">
-            {/* Input Fields Row */}
-            <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-              {/* Bug ID Input */}
-              <div>
-                <label
-                  htmlFor="bugId"
-                  className="mb-2 block text-sm font-medium text-slate-300"
-                >
-                  Bug ID
-                </label>
-                <input
-                  type="text"
-                  id="bugId"
-                  value={bugId}
-                  onChange={(e) => setBugId(e.target.value)}
-                  placeholder="Enter bug ID (e.g., 12345)"
-                  className="w-full rounded-xl border border-slate-600 bg-slate-900/50 px-5 py-4 text-lg text-white placeholder-slate-500 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      if (bugId.trim()) {
-                        handleFetchBugInfo();
-                      }
+            {/* PR Input Field */}
+            <div className="mb-6">
+              <label
+                htmlFor="prId"
+                className="mb-2 block text-sm font-medium text-slate-300"
+              >
+                PR Number
+              </label>
+              <input
+                type="text"
+                id="prId"
+                value={prId}
+                onChange={(e) => setPrId(e.target.value)}
+                placeholder="Enter PR number (e.g., 42)"
+                className="w-full rounded-xl border border-slate-600 bg-slate-900/50 px-5 py-4 text-lg text-white placeholder-slate-500 outline-none transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    if (prId.trim()) {
+                      handleFetchPRInfo();
                     }
-                  }}
-                />
-              </div>
-
-              {/* PR ID Input */}
-              <div>
-                <label
-                  htmlFor="prId"
-                  className="mb-2 block text-sm font-medium text-slate-300"
-                >
-                  PR Number
-                </label>
-                <input
-                  type="text"
-                  id="prId"
-                  value={prId}
-                  onChange={(e) => setPrId(e.target.value)}
-                  placeholder="Enter PR number (e.g., 42)"
-                  className="w-full rounded-xl border border-slate-600 bg-slate-900/50 px-5 py-4 text-lg text-white placeholder-slate-500 outline-none transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      if (prId.trim()) {
-                        handleFetchPRInfo();
-                      }
-                    }
-                  }}
-                />
-              </div>
+                  }
+                }}
+              />
+              {bugId && (
+                <div className="mt-2 flex items-center gap-2 text-sm text-emerald-400">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
+                  Bug #{bugId} detected in PR description
+                </div>
+              )}
             </div>
 
             {/* Analysis Error Display */}
@@ -336,26 +298,28 @@ ${filesDisplay}
               {/* Bug Info Display */}
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-300">
-                  Bug Information
+                  Bug Information {bugId ? `(#${bugId})` : "(auto-detected from PR)"}
                 </label>
                 <div className="relative">
                   <textarea
                     readOnly
                     value={
-                      isLoading && activeAction === "fetchBug"
-                        ? "Loading bug information..."
-                        : bugError
-                          ? `❌ Error: ${bugError}`
-                          : bugInfo
-                            ? formatBugInfoDisplay()
-                            : "Bug details will appear here after fetching..."
+                      bugInfo
+                        ? formatBugInfoDisplay()
+                        : prInfo && bugId
+                          ? `Bug #${bugId} was found in PR description, but failed to fetch details from TFS.\n\nPossible causes:\n• TFS server is not reachable\n• TFS credentials are not configured\n• Bug ID does not exist in TFS`
+                          : prInfo && !bugId
+                            ? "No bug ID found in PR description.\nPR descriptions should contain a bug ID with # prefix (e.g., #12345)"
+                            : "Bug details will appear here after fetching PR info..."
                     }
                     className={`h-96 w-full resize-none rounded-xl border bg-slate-900/70 px-5 py-4 font-mono text-sm leading-relaxed outline-none transition-all ${
-                      bugError
-                        ? "border-red-500/50 text-red-400"
-                        : bugInfo
-                          ? "border-blue-500/30 text-slate-300"
-                          : "border-slate-600 text-slate-500"
+                      bugInfo
+                        ? "border-blue-500/30 text-slate-300"
+                        : prInfo && bugId
+                          ? "border-red-500/50 text-red-400"
+                          : prInfo && !bugId
+                            ? "border-amber-500/50 text-amber-400"
+                            : "border-slate-600 text-slate-500"
                     }`}
                   />
                 </div>
@@ -391,50 +355,7 @@ ${filesDisplay}
             </div>
 
             {/* Action Buttons */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <button
-                onClick={handleFetchBugInfo}
-                disabled={!bugId.trim() || isLoading}
-                className="group flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-4 font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:from-blue-500 hover:to-blue-400 hover:shadow-blue-500/40 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
-              >
-                {isLoading && activeAction === "fetchBug" ? (
-                  <svg
-                    className="h-5 w-5 animate-spin"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    className="h-5 w-5 transition-transform group-hover:scale-110"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                )}
-                Fetch Bug Info
-              </button>
-
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <button
                 onClick={handleFetchPRInfo}
                 disabled={!prId.trim() || isLoading}
@@ -475,7 +396,7 @@ ${filesDisplay}
                     />
                   </svg>
                 )}
-                Fetch PR File Changes
+                Fetch PR Info & Bug
               </button>
 
               <button
