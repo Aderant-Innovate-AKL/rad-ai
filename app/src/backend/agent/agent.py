@@ -29,7 +29,7 @@ class TestCaseAgent:
     """
     AI Agent for analyzing test cases against bug reports.
     
-    Uses Anthropic Claude for natural language understanding and reasoning,
+    Uses Claude via AWS Bedrock for natural language understanding and reasoning,
     and sentence transformers for semantic similarity matching.
     """
     
@@ -675,10 +675,10 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
                 writer.writeheader()
                 writer.writerows(csv_rows)
             
-            print(f"\n✓ Exported {len(csv_rows)} test cases to: {output_path}")
+            print(f"\n[OK] Exported {len(csv_rows)} test cases to: {output_path}")
             return output_path
         else:
-            print(f"\n⚠ No test cases above similarity threshold ({similarity_threshold})")
+            print(f"\n[WARN] No test cases above similarity threshold ({similarity_threshold})")
             return None
     
     def analyze_bug_report(
@@ -717,7 +717,7 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
         if auto_load and self.use_mcp and len(self.test_cases) == 0:
             print("\nAuto-detecting relevant test cases...")
             load_result = self.detect_and_load_test_cases(bug_description, repro_steps)
-            print(f"✓ Loaded {load_result['test_cases_count']} test cases from {len(load_result['areas_loaded'])} area(s)")
+            print(f"[OK] Loaded {load_result['test_cases_count']} test cases from {len(load_result['areas_loaded'])} area(s)")
             print(f"  Recommendation: {load_result['recommendation']}\n")
         
         if len(self.test_cases) == 0:
@@ -761,7 +761,7 @@ Respond in JSON format with: duplicate_groups (array of objects with pair_id, cl
         high_confidence_tests = [(tc, score) for tc, score in similar_tests if score >= claude_threshold]
         
         if not high_confidence_tests:
-            print(f"⚠ Warning: No test cases above Claude analysis threshold ({claude_threshold:.2f})")
+            print(f"[WARN] No test cases above Claude analysis threshold ({claude_threshold:.2f})")
             if similar_tests:
                 print(f"  Found {len(similar_tests)} test cases above minimum threshold ({min_similarity:.2f})")
                 print(f"  Highest similarity: {similar_tests[0][1]:.3f}")

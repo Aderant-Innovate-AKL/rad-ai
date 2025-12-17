@@ -28,6 +28,7 @@ load_dotenv()
 sys.path.append(str(Path(__file__).parent))
 
 from agent.agent import TestCaseAgent
+from bedrock_client import invoke_claude, BEDROCK_MODEL_ID
 
 # TFS Configuration (loaded from .env file)
 TFS_BASE_URL = os.getenv("TFS_BASE_URL", "")  # e.g., https://tfs.aderant.com/tfs
@@ -207,9 +208,9 @@ async def startup_event():
     global agent
     try:
         agent = TestCaseAgent(use_mcp=True)
-        print("✓ Agent initialized successfully")
+        print("[OK] Agent initialized successfully")
     except Exception as e:
-        print(f"✗ Failed to initialize agent: {e}")
+        print(f"[FAIL] Failed to initialize agent: {e}")
         traceback.print_exc()
 
 
@@ -363,7 +364,7 @@ Provide your response in JSON format with these exact keys:
                 json_str = response_text[start_idx:end_idx]
                 parsed_data = json.loads(json_str)
                 
-                print(f"✓ Successfully parsed bug context")
+                print(f"[OK] Successfully parsed bug context")
                 print(f"  Confidence: {parsed_data.get('confidence', 'unknown')}")
                 print(f"  Bug Description: {parsed_data.get('bug_description', '')[:100]}...")
                 print("="*80 + "\n")
@@ -378,7 +379,7 @@ Provide your response in JSON format with these exact keys:
             else:
                 raise ValueError("No JSON found in response")
         except (json.JSONDecodeError, ValueError) as e:
-            print(f"⚠ Warning: Could not parse JSON response: {e}")
+            print(f"[WARN] Could not parse JSON response: {e}")
             # Fallback: return raw content with low confidence
             return ParsedBugContext(
                 bug_description=bug_info[:500] if bug_info else "Could not extract bug description",
@@ -937,8 +938,8 @@ Keep the summary concise but informative."""
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error fetching PR info: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch PR info: {str(e)}")
+        print(f"[ERROR] Error fetching PR info: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI API error: {str(e)}")
 
 
 @app.get("/summarize-pr/{pr_number}", response_model=PRSummaryResponse)
@@ -1062,8 +1063,8 @@ Keep the summary concise but informative."""
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error summarizing PR: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to summarize PR: {str(e)}")
+        print(f"[ERROR] Error summarizing PR: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI API error: {str(e)}")
 
 
 if __name__ == "__main__":
@@ -1073,16 +1074,16 @@ if __name__ == "__main__":
     print("\n" + "="*80)
     print("Starting Unified Test Case Analysis API Server")
     print("="*80)
-    print("\n📊 Available Endpoints:")
-    print("  • Bug Analysis: /analyze, /analyze-bug")
-    print("  • TFS Integration: /fetch-bug-info/{bug_id}")
-    print("  • GitHub PR: /fetch-pr-info/{pr_number}, /summarize-pr/{pr_number}")
-    print("  • Test Cases: /areas, /detect-area, /detect-areas, /detect-duplicates")
-    print("  • Utilities: /download/{filename}, /stats, /health")
-    print("\n🌐 Access Points:")
-    print("  • API Documentation: http://localhost:8000/docs")
-    print("  • Interactive API: http://localhost:8000/redoc")
-    print("  • Health Check: http://localhost:8000/health")
+    print("\nAvailable Endpoints:")
+    print("  - Bug Analysis: /analyze, /analyze-bug")
+    print("  - TFS Integration: /fetch-bug-info/{bug_id}")
+    print("  - GitHub PR: /fetch-pr-info/{pr_number}, /summarize-pr/{pr_number}")
+    print("  - Test Cases: /areas, /detect-area, /detect-areas, /detect-duplicates")
+    print("  - Utilities: /download/{filename}, /stats, /health")
+    print("\nAccess Points:")
+    print("  - API Documentation: http://localhost:8000/docs")
+    print("  - Interactive API: http://localhost:8000/redoc")
+    print("  - Health Check: http://localhost:8000/health")
     print("\n" + "="*80 + "\n")
     
     uvicorn.run(
